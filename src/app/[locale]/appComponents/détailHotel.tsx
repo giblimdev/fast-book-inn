@@ -2,7 +2,11 @@ import React from 'react'
 
 function détailHotel() {
   return (
-    <div>détailHotel</div>
+    <div>détailHotel
+      <div>
+        
+      </div>
+    </div>
   )
 }
 

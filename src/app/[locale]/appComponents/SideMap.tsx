@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Image from 'next/image';
 import mapImage from '../../../../public/map.png'; 
@@ -13,6 +14,8 @@ function SideMap() {
         height={600} // Définissez la hauteur de l'image
       />
     </div>
+
+
   );
 }
 
