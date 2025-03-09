@@ -1,4 +1,3 @@
-// app/api/admin/Destination/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -7,7 +6,9 @@ const prisma = new PrismaClient();
 // GET: Fetch all destinations
 export async function GET() {
   try {
-    const destinations = await prisma.destination.findMany();
+    const destinations = await prisma.destination.findMany({
+      orderBy: { order: 'asc' }, // Fetch destinations ordered by 'order'
+    });
     return NextResponse.json(destinations);
   } catch (error) {
     console.error('Error fetching destinations:', error);
@@ -29,8 +30,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Calculate the next order value
+    const maxOrderDestination = await prisma.destination.findFirst({
+      orderBy: { order: 'desc' },
+    });
+    const order = maxOrderDestination ? maxOrderDestination.order + 1 : 0;
+
     const newDestination = await prisma.destination.create({
-      data: { name },
+      data: { name, order },
     });
     return NextResponse.json(newDestination, { status: 201 });
   } catch (error) {
@@ -45,7 +52,27 @@ export async function POST(request: Request) {
 // PUT: Update a destination
 export async function PUT(request: Request) {
   try {
-    const { id, name } = await request.json();
+    const body = await request.json();
+
+    // Handle bulk order updates
+    if (body.destinations) {
+      const { destinations } = body;
+
+      // Update the order of all destinations
+      await Promise.all(
+        destinations.map(async (dest: { id: string; order: number }) => {
+          await prisma.destination.update({
+            where: { id: dest.id },
+            data: { order: dest.order },
+          });
+        })
+      );
+
+      return NextResponse.json({ success: true });
+    }
+
+    // Handle single destination update (name or order)
+    const { id, name } = body;
     if (!id || !name) {
       return NextResponse.json(
         { error: 'ID and Name are required' },
@@ -70,7 +97,8 @@ export async function PUT(request: Request) {
 // DELETE: Delete a destination
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json();
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id'); // Extract ID from query parameters
     if (!id) {
       return NextResponse.json(
         { error: 'ID is required' },

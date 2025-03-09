@@ -2,10 +2,7 @@
 
 import { ParkingOption } from "@prisma/client";
 
-/**
- * Fetches all parking options from the database
- * @returns A Promise containing all parking options
- */
+
 export async function getParkingOptions(): Promise<ParkingOption[]> {
   try {
     const response = await fetch('/api/get/parkingOptions', {

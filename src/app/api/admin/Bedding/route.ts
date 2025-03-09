@@ -1,4 +1,3 @@
-// app/api/admin/BeddingConfiguration/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -7,7 +6,9 @@ const prisma = new PrismaClient();
 // GET: Fetch all bedding configurations
 export async function GET() {
   try {
-    const beddingConfigurations = await prisma.beddingConfiguration.findMany();
+    const beddingConfigurations = await prisma.beddingConfiguration.findMany({
+      orderBy: { order: 'asc' }, // Fetch configurations ordered by 'order'
+    });
     return NextResponse.json(beddingConfigurations);
   } catch (error) {
     console.error('Error fetching bedding configurations:', error);
@@ -29,8 +30,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Calculate the next order value
+    const maxOrderConfig = await prisma.beddingConfiguration.findFirst({
+      orderBy: { order: 'desc' },
+    });
+    const order = maxOrderConfig ? maxOrderConfig.order + 1 : 0;
+
     const newBeddingConfiguration = await prisma.beddingConfiguration.create({
-      data: { name },
+      data: { name, order },
     });
     return NextResponse.json(newBeddingConfiguration, { status: 201 });
   } catch (error) {
@@ -45,7 +52,27 @@ export async function POST(request: Request) {
 // PUT: Update a bedding configuration
 export async function PUT(request: Request) {
   try {
-    const { id, name } = await request.json();
+    const body = await request.json();
+
+    // Handle bulk order updates
+    if (body.beddingConfigurations) {
+      const { beddingConfigurations } = body;
+
+      // Update the order of all configurations
+      await Promise.all(
+        beddingConfigurations.map(async (config: { id: string; order: number }) => {
+          await prisma.beddingConfiguration.update({
+            where: { id: config.id },
+            data: { order: config.order },
+          });
+        })
+      );
+
+      return NextResponse.json({ success: true });
+    }
+
+    // Handle single configuration update (name or order)
+    const { id, name } = body;
     if (!id || !name) {
       return NextResponse.json(
         { error: 'ID and Name are required' },
@@ -70,7 +97,8 @@ export async function PUT(request: Request) {
 // DELETE: Delete a bedding configuration
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json();
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id'); // Extract ID from query parameters
     if (!id) {
       return NextResponse.json(
         { error: 'ID is required' },

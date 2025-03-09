@@ -1,4 +1,3 @@
-// app/api/admin/AccommodationCharacteristic/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -7,13 +6,17 @@ const prisma = new PrismaClient();
 // GET: Fetch all accommodation characteristics
 export async function GET() {
   try {
-    const accommodationCharacteristics = await prisma.accommodationCharacteristic.findMany();
-    return NextResponse.json(accommodationCharacteristics);
+    console.log('GET request received for accommodation characteristics');
+    const characteristics = await prisma.accommodationCharacteristic.findMany({
+      orderBy: { order: 'asc' },
+    });
+    console.log('Retrieved characteristics:', characteristics);
+    return NextResponse.json(characteristics);
   } catch (error) {
-    console.error('Error fetching accommodation characteristics:', error);
+    console.error('Error fetching characteristics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch accommodation characteristics' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -21,23 +24,33 @@ export async function GET() {
 // POST: Create a new accommodation characteristic
 export async function POST(request: Request) {
   try {
-    const { name } = await request.json();
+    const body = await request.json();
+    console.log('POST request received with body:', body);
+
+    const { name } = body;
     if (!name) {
-      return NextResponse.json(
-        { error: 'Name is required' },
-        { status: 400 }
-      );
+      console.log('POST validation failed: Name is required');
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const newAccommodationCharacteristic = await prisma.accommodationCharacteristic.create({
-      data: { name },
+    // Calculate the next order value
+    const maxOrderOption = await prisma.accommodationCharacteristic.findFirst({
+      orderBy: { order: 'desc' },
     });
-    return NextResponse.json(newAccommodationCharacteristic, { status: 201 });
+    const orderValue = maxOrderOption ? maxOrderOption.order + 1 : 0;
+    console.log('Generated order value:', orderValue);
+
+    // Create the new characteristic
+    const newCharacteristic = await prisma.accommodationCharacteristic.create({
+      data: { name, order: orderValue },
+    });
+    console.log('Created new characteristic:', newCharacteristic);
+    return NextResponse.json(newCharacteristic, { status: 201 });
   } catch (error) {
-    console.error('Error creating accommodation characteristic:', error);
+    console.error('Error creating characteristic:', error);
     return NextResponse.json(
       { error: 'Failed to create accommodation characteristic' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -45,24 +58,51 @@ export async function POST(request: Request) {
 // PUT: Update an accommodation characteristic
 export async function PUT(request: Request) {
   try {
-    const { id, name } = await request.json();
-    if (!id || !name) {
-      return NextResponse.json(
-        { error: 'ID and Name are required' },
-        { status: 400 }
-      );
+    const body = await request.json();
+    console.log('PUT request received with body:', body);
+
+    // Handle bulk order updates
+    if (body.characteristics) {
+      const { characteristics } = body;
+
+      // Update the order of all characteristics
+      await Promise.all(
+        characteristics.map(async (char: { id: string; order: number }) => {
+          await prisma.accommodationCharacteristic.update({
+            where: { id: char.id },
+            data: { order: char.order },
+          });
+        }),
+      ); 
+
+      console.log('Updated characteristics order:', characteristics);
+      return NextResponse.json({ success: true });
     }
 
-    const updatedAccommodationCharacteristic = await prisma.accommodationCharacteristic.update({
+    // Handle single characteristic update (name or order)
+    const { id, name, order } = body;
+    if (!id) {
+      console.log('PUT validation failed: ID is required');
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+
+    const updateData: { name?: string; order?: number } = {};
+    if (name !== undefined) updateData.name = name;
+    if (order !== undefined) updateData.order = order;
+
+    console.log('Updating characteristic with data:', updateData);
+
+    const updatedCharacteristic = await prisma.accommodationCharacteristic.update({
       where: { id },
-      data: { name },
+      data: updateData,
     });
-    return NextResponse.json(updatedAccommodationCharacteristic);
+    console.log('Updated characteristic:', updatedCharacteristic);
+    return NextResponse.json(updatedCharacteristic);
   } catch (error) {
-    console.error('Error updating accommodation characteristic:', error);
+    console.error('Error updating characteristic:', error);
     return NextResponse.json(
       { error: 'Failed to update accommodation characteristic' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -70,23 +110,25 @@ export async function PUT(request: Request) {
 // DELETE: Delete an accommodation characteristic
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json();
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    console.log('DELETE request received with id:', id);
+
     if (!id) {
-      return NextResponse.json(
-        { error: 'ID is required' },
-        { status: 400 }
-      );
+      console.log('DELETE validation failed: ID is required');
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
     await prisma.accommodationCharacteristic.delete({
       where: { id },
     });
+    console.log(`Successfully deleted characteristic with ID: ${id}`);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error deleting accommodation characteristic:', error);
+    console.error('Error deleting characteristic:', error);
     return NextResponse.json(
       { error: 'Failed to delete accommodation characteristic' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

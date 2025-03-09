@@ -1,151 +1,158 @@
-/*
-
-export const bedTypes = [
-    "1 king size bed", // 1 lit king size
-    "1 double bed", // 1 lit double
-    "1 single bed", // 1 lit simple
-    "2 single beds", // 2 lits simples
-    "3 beds and more", // 3 lits et +
-  ];
-
- */
-/*
-
-model BedType {
-  id        String  @id @default(uuid())
-  name      String
-  hotels    Hotel[]
-}
-
-
-*/
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+import { getBedTypes } from "../../../../../../utils/getBedTypes"; 
+import { FaEdit, FaTrash, FaArrowUp, FaArrowDown, FaPlus, FaSave } from "react-icons/fa";
 
 interface BedType {
   id: string;
   name: string;
+  order: number;
 }
 
-const BedTypes: React.FC = () => {
+const BedType = () => {
   const [bedTypes, setBedTypes] = useState<BedType[]>([]);
-  const [newBedType, setNewBedType] = useState<{ name: string }>({ name: '' });
-  const [editingBedType, setEditingBedType] = useState<BedType | null>(null);
+  const [newBedType, setNewBedType] = useState("");
+  const [editing, setEditing] = useState<{ id: string | null; name: string }>({ id: null, name: "" });
 
-  // Fetch all bed types
   useEffect(() => {
-    fetchBedTypes();
+    fetchData();
   }, []);
 
-  const fetchBedTypes = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('/api/admin/BedType');
-      if (!response.ok) throw new Error('Failed to fetch bed types');
-      const data = await response.json();
+      const data = await getBedTypes(); // Utilisation de getBedType
       setBedTypes(data);
     } catch (error) {
-      console.error('Error fetching bed types:', error);
+      console.error("Failed to fetch bed types:", error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (editingBedType) {
-      setEditingBedType({ ...editingBedType, [name]: value });
-    } else {
-      setNewBedType({ ...newBedType, [name]: value });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
+    if (!newBedType) return;
     try {
-      if (editingBedType) {
-        const response = await fetch('/api/admin/BedType', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingBedType.id, name: editingBedType.name }),
-        });
-        if (!response.ok) throw new Error('Failed to update bed type');
-        setEditingBedType(null);
-      } else {
-        const response = await fetch('/api/admin/BedType', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newBedType),
-        });
-        if (!response.ok) throw new Error('Failed to create bed type');
-        setNewBedType({ name: '' });
+      const response = await fetch('/api/admin/BedType', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newBedType }),
+      });
+      if (response.ok) {
+        const addedBedType = await response.json();
+        setBedTypes([...bedTypes, addedBedType]);
+        setNewBedType("");
       }
-      fetchBedTypes();
     } catch (error) {
-      console.error('Error submitting bed type:', error);
+      console.error("Failed to add bed type:", error);
     }
-  };
-
-  const handleEdit = (bedType: BedType) => {
-    setEditingBedType(bedType);
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/BedType', {
+      await fetch(`/api/admin/BedType?id=${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
       });
-      if (!response.ok) throw new Error('Failed to delete bed type');
-      fetchBedTypes();
+      setBedTypes(bedTypes.filter((type) => type.id !== id));
     } catch (error) {
-      console.error('Error deleting bed type:', error);
+      console.error("Failed to delete bed type:", error);
+    }
+  };
+
+  const handleMove = (id: string, direction: "up" | "down") => {
+    const index = bedTypes.findIndex((type) => type.id === id);
+    if (index < 0) return;
+    const newOrder = [...bedTypes];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    newOrder.forEach((type, idx) => (type.order = idx));
+    setBedTypes([...newOrder]);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await fetch('/api/admin/BedType', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bedTypes: bedTypes.map(({ id, order }) => ({ id, order })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save order:", error);
+    }
+  };
+
+  const handleEdit = async (id: string) => {
+    try {
+      await fetch('/api/admin/BedType', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: editing.name }),
+      });
+      setBedTypes(bedTypes.map((type) => (type.id === id ? { ...type, name: editing.name } : type)));
+      setEditing({ id: null, name: "" });
+    } catch (error) {
+      console.error("Failed to edit bed type:", error);
     }
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Bed Types</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
+    <div className="p-4 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Bed Types</h2>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
-          name="name"
-          value={editingBedType ? editingBedType.name : newBedType.name}
-          onChange={handleInputChange}
-          placeholder="Bed type name"
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
+          className="border p-2 flex-grow rounded"
+          value={newBedType}
+          onChange={(e) => setNewBedType(e.target.value)}
+          placeholder="Add new bed type"
         />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          {editingBedType ? 'Update Bed Type' : 'Add Bed Type'}
+        <button className="bg-blue-500 text-white p-2 rounded" onClick={handleAdd}>
+          <FaPlus />
         </button>
-      </form>
-      <ul className="bg-white p-6 rounded-lg shadow-md">
-        {bedTypes.map((bedType) => (
-          <li key={bedType.id} className="flex justify-between items-center p-4 border-b border-gray-200 last:border-b-0">
-            <span className="text-gray-700">{bedType.name}</span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleEdit(bedType)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition duration-200"
-              >
-                Edit
+      </div>
+      <ul className="space-y-2">
+        {bedTypes.map((type, index) => (
+          <li key={type.id} className="flex items-center justify-between p-2 border rounded">
+            {editing.id === type.id ? (
+              <input
+                type="text"
+                className="border p-1 flex-grow"
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+            ) : (
+              <span>{type.name}</span>
+            )}
+            <div className="flex gap-2">
+              {editing.id === type.id ? (
+                <button className="bg-green-500 text-white p-1 rounded" onClick={() => handleEdit(type.id)}>
+                  ✅
+                </button>
+              ) : (
+                <button className="text-blue-500" onClick={() => setEditing({ id: type.id, name: type.name })}>
+                  <FaEdit />
+                </button>
+              )}
+              <button onClick={() => handleMove(type.id, "up")} disabled={index === 0} className="text-gray-500">
+                <FaArrowUp />
               </button>
-              <button
-                onClick={() => handleDelete(bedType.id)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-              >
-                Delete
+              <button onClick={() => handleMove(type.id, "down")} disabled={index === bedTypes.length - 1} className="text-gray-500">
+                <FaArrowDown />
+              </button>
+              <button className="text-red-500" onClick={() => handleDelete(type.id)}>
+                <FaTrash />
               </button>
             </div>
           </li>
         ))}
       </ul>
+      <div className="flex justify-end mt-4">
+        <button className="bg-green-500 text-white p-2 rounded flex items-center" onClick={handleSaveOrder}>
+          <FaSave className="mr-2" /> Save Order
+        </button>
+      </div>
     </div>
   );
 };
 
-export default BedTypes;
-
-/*crées une mise forme conviviale ajoute les flèches up et down pour modifier ordre et rends ces flèches fonctionnelles. */
+export default BedType;

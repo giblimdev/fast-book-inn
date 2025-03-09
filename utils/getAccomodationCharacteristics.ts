@@ -1,3 +1,4 @@
+//utils/getAccommodationCharacteristics.ts
 import { AccommodationCharacteristic } from "@prisma/client";
 
 /**

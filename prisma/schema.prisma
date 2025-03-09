@@ -18,12 +18,12 @@ model User {
   name            String?
   email           String    @unique
   password        String
-  phone           String?   @default("")
+  phone           String   @default("")
   lang            String
   image           String?
   role            String    @default("USER") // USER, ADMIN, HOST
-  emailVerified   Boolean?  @default(false)
-  phoneVerified   Boolean?  @default(false)
+  emailVerified   Boolean  @default(false)
+  phoneVerified   Boolean  @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   hotels          Hotel[]   // Relation avec les hôtels gérés par l'hôte
@@ -54,6 +54,7 @@ model Hotel {
   bedTypes                  BedType[]
   rooms                     Room[]
   labels                    HotelLabel[]
+  mealPlans                 MealPlans[]
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
 
@@ -64,6 +65,13 @@ model Hotel {
   User User[]
 }
 
+model MealPlans {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int   @default(0)
+  hotels    Hotel[]
+}
+
 model Room {
   id              String    @id @default(uuid())
   hotel           Hotel     @relation(fields: [hotelId], references: [id])
@@ -72,7 +80,7 @@ model Room {
   type            String    // single, double, suite, etc.
   description     String?
   pricePerNight   Float
-order     Int?    @default(0)
+order     Int    @default(0)
   capacity        Int       @default(2)
   isAvailable     Boolean   @default(true)
   createdAt       DateTime  @default(now())
@@ -211,7 +219,7 @@ model HotelLabel {
 model Label {
   id     String       @id @default(uuid())
   name   String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels HotelLabel[] // Relation via la table de jonction
 }
 
@@ -245,70 +253,70 @@ model Image {
   url       String
   isMain    Boolean  @default(false)
   hotelId   String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
 }
 
 model Destination {
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int   @default(0)
   hotels    Hotel[]
 }
 
 model AccommodationType { 
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
 model AccommodationCharacteristic {
   id        String  @id @default(uuid()) 
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
 model BeddingConfiguration {
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
 model Service {
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
 model AccessibilityOption {
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
 model RoomFeature {
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
 model ParkingOption {
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
 model BedType {
   id        String  @id @default(uuid())
   name      String
-  order     Int?    @default(0)
+  order     Int    @default(0)
   hotels    Hotel[]
 }
 
@@ -316,7 +324,7 @@ model BedType {
 model Tax {
   id          String  @id @default(uuid())
   name        String
-  description String?
+  description String
   rate        Float
   isPercentage Boolean @default(true)
   isActive    Boolean @default(true)

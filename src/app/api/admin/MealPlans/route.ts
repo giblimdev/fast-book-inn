@@ -1,27 +1,29 @@
+// src/app/api/get/mealPlans/route.ts
+
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-
-// GET: Récupérer toutes les caractéristiques de chambre
+ 
+// GET: Fetch all meal plans
 export async function GET() {
   try {
-    console.log('GET request received for room features');
-    const features = await prisma.roomFeature.findMany({
+    console.log('GET request received for meal plans');
+    const mealPlans = await prisma.mealPlans.findMany({
       orderBy: { order: 'asc' },
     });
-    console.log('Retrieved room features:', features);
-    return NextResponse.json(features);
+    console.log('Retrieved meal plans:', mealPlans);
+    return NextResponse.json(mealPlans);
   } catch (error) {
-    console.error('Error fetching room features:', error);
+    console.error('Error fetching meal plans:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch room features' },
-      { status: 500 }
+      { error: 'Failed to fetch meal plans' },
+      { status: 500 },
     );
   }
 }
 
-// POST: Créer une nouvelle caractéristique de chambre
+// POST: Create a new meal plan
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -33,53 +35,53 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    // Calculer la valeur de l'ordre
-    const maxOrderOption = await prisma.roomFeature.findFirst({
+    // Calculate the next order value
+    const maxOrderOption = await prisma.mealPlans.findFirst({
       orderBy: { order: 'desc' },
     });
     const orderValue = maxOrderOption ? maxOrderOption.order + 1 : 0;
     console.log('Generated order value:', orderValue);
 
-    // Créer la nouvelle caractéristique
-    const newFeature = await prisma.roomFeature.create({
+    // Create the new meal plan
+    const newMealPlan = await prisma.mealPlans.create({
       data: { name, order: orderValue },
     });
-    console.log('Created new room feature:', newFeature);
-    return NextResponse.json(newFeature, { status: 201 });
+    console.log('Created new meal plan:', newMealPlan);
+    return NextResponse.json(newMealPlan, { status: 201 });
   } catch (error) {
-    console.error('Error creating room feature:', error);
+    console.error('Error creating meal plan:', error);
     return NextResponse.json(
-      { error: 'Failed to create room feature' },
-      { status: 500 }
+      { error: 'Failed to create meal plan' },
+      { status: 500 },
     );
   }
 }
 
-// PUT: Mettre à jour une ou plusieurs caractéristiques de chambre
+// PUT: Update a meal plan
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
     console.log('PUT request received with body:', body);
 
-    // Mise à jour en bloc des ordres des caractéristiques
-    if (body.features) {
-      const { features } = body;
+    // Handle bulk order updates
+    if (body.mealPlans) {
+      const { mealPlans } = body;
 
-      // Mettre à jour l'ordre de toutes les caractéristiques
+      // Update the order of all meal plans
       await Promise.all(
-        features.map(async (feature: { id: string; order: number }) => {
-          await prisma.roomFeature.update({
-            where: { id: feature.id },
-            data: { order: feature.order },
+        mealPlans.map(async (plan: { id: string; order: number }) => {
+          await prisma.mealPlans.update({
+            where: { id: plan.id },
+            data: { order: plan.order },
           });
-        })
+        }),
       );
 
-      console.log('Updated room features order:', features);
+      console.log('Updated meal plans order:', mealPlans);
       return NextResponse.json({ success: true });
     }
 
-    // Mise à jour d'une seule caractéristique (nom ou ordre)
+    // Handle single meal plan update (name or order)
     const { id, name, order } = body;
     if (!id) {
       console.log('PUT validation failed: ID is required');
@@ -90,24 +92,24 @@ export async function PUT(request: Request) {
     if (name !== undefined) updateData.name = name;
     if (order !== undefined) updateData.order = order;
 
-    console.log('Updating room feature with data:', updateData);
+    console.log('Updating meal plan with data:', updateData);
 
-    const updatedFeature = await prisma.roomFeature.update({
+    const updatedMealPlan = await prisma.mealPlans.update({
       where: { id },
       data: updateData,
     });
-    console.log('Updated room feature:', updatedFeature);
-    return NextResponse.json(updatedFeature);
+    console.log('Updated meal plan:', updatedMealPlan);
+    return NextResponse.json(updatedMealPlan);
   } catch (error) {
-    console.error('Error updating room feature:', error);
+    console.error('Error updating meal plan:', error);
     return NextResponse.json(
-      { error: 'Failed to update room feature' },
-      { status: 500 }
+      { error: 'Failed to update meal plan' },
+      { status: 500 },
     );
   }
 }
 
-// DELETE: Supprimer une caractéristique de chambre
+// DELETE: Delete a meal plan
 export async function DELETE(request: Request) {
   try {
     const url = new URL(request.url);
@@ -119,16 +121,16 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    await prisma.roomFeature.delete({
+    await prisma.mealPlans.delete({
       where: { id },
     });
-    console.log(`Successfully deleted room feature with ID: ${id}`);
+    console.log(`Successfully deleted meal plan with ID: ${id}`);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error deleting room feature:', error);
+    console.error('Error deleting meal plan:', error);
     return NextResponse.json(
-      { error: 'Failed to delete room feature' },
-      { status: 500 }
+      { error: 'Failed to delete meal plan' },
+      { status: 500 },
     );
   }
 }

@@ -1,176 +1,161 @@
-/*
-
-model RoomFeature {
-  id        String  @id @default(uuid())
-  name      String
-  hotels    Hotel[]
-}
-
-
- */
-/*
-export const roomFeatures = [
-    "Shared bathroom", // Salle de bain commune
-    "Shared toilet", // Sanitaire commun
-    "Air conditioning", // Air conditionné
-    "WiFi included", // WiFi inclus
-    "Ensuite bathroom", // Salle de bain dans la chambre
-    "Jacuzzi", // Jacuzzi
-    "Bathtub", // Baignoire
-    "Shower", // Douche
-    "Toilet", // Sanitaire
-    "Balcony", // Balcon
-    "Minibar", // Minibar
-    "Refrigerator", // Réfrigérateur
-    "Kettle", // Bouilloire
-    "Coffee maker", // Cafetière
-    "Television", // Télévision
-    "TV with streaming service", // TV avec service de streaming
-    "Safe", // Coffre-fort
-    "Iron and ironing board", // Fer et planche à repasser
-    "Hair dryer", // Sèche-cheveux
-    "Free toiletries", // Produits de toilette gratuits
-    "Robes and slippers", // Peignoirs et chaussons
-    "Desk", // Bureau
-    "Kitchen", // Cuisine
-    "Laundry facilities", // Buanderie
-    "Washing machine", // Machine à laver
-    "Baby cot available", // Lit bébé disponible
-  ];
-*/
-"use client";
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+import { getRoomFeatures } from "../../../../../../utils/getRoomFfeatures"; 
+import { FaEdit, FaTrash, FaArrowUp, FaArrowDown, FaPlus, FaSave } from "react-icons/fa";
 
 interface RoomFeature {
   id: string;
   name: string;
+  order: number;
 }
 
-const RoomFeatures: React.FC = () => {
-  const [roomFeatures, setRoomFeatures] = useState<RoomFeature[]>([]);
-  const [newRoomFeature, setNewRoomFeature] = useState<{ name: string }>({ name: '' });
-  const [editingRoomFeature, setEditingRoomFeature] = useState<RoomFeature | null>(null);
+const RoomFeatures = () => {
+  const [features, setFeatures] = useState<RoomFeature[]>([]);
+  const [newFeature, setNewFeature] = useState("");
+  const [editing, setEditing] = useState<{ id: string | null; name: string }>({ id: null, name: "" });
 
-  // Fetch all room features
   useEffect(() => {
-    fetchRoomFeatures();
+    fetchData();
   }, []);
 
-  const fetchRoomFeatures = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('/api/admin/RoomFeatures');
-      if (!response.ok) throw new Error('Failed to fetch room features');
-      const data = await response.json();
-      setRoomFeatures(data);
+      const data = await getRoomFeatures();
+      setFeatures(data);
     } catch (error) {
-      console.error('Error fetching room features:', error);
+      console.error("Failed to fetch room features:", error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (editingRoomFeature) {
-      setEditingRoomFeature({ ...editingRoomFeature, [name]: value });
-    } else {
-      setNewRoomFeature({ ...newRoomFeature, [name]: value });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
+    if (!newFeature) return;
     try {
-      if (editingRoomFeature) {
-        const response = await fetch('/api/admin/RoomFeatures', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingRoomFeature.id, name: editingRoomFeature.name }),
-        });
-        if (!response.ok) throw new Error('Failed to update room feature');
-        setEditingRoomFeature(null);
-      } else {
-        const response = await fetch('/api/admin/RoomFeatures', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newRoomFeature),
-        });
-        if (!response.ok) throw new Error('Failed to create room feature');
-        setNewRoomFeature({ name: '' });
+      const response = await fetch("/api/admin/RoomFeatures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newFeature }),
+      });
+      if (response.ok) {
+        const addedFeature = await response.json();
+        setFeatures([...features, addedFeature]);
+        setNewFeature("");
       }
-      fetchRoomFeatures();
     } catch (error) {
-      console.error('Error submitting room feature:', error);
+      console.error("Failed to add room feature:", error);
     }
-  };
-
-  const handleEdit = (roomFeature: RoomFeature) => {
-    setEditingRoomFeature(roomFeature);
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/RoomFeatures', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+      await fetch(`/api/admin/RoomFeatures?id=${id}`, {
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error('Failed to delete room feature');
-      fetchRoomFeatures();
+      setFeatures(features.filter((feature) => feature.id !== id));
     } catch (error) {
-      console.error('Error deleting room feature:', error);
+      console.error("Failed to delete room feature:", error);
+    }
+  };
+
+  const handleMove = (id: string, direction: "up" | "down") => {
+    const index = features.findIndex((feature) => feature.id === id);
+    if (index < 0) return;
+    const newOrder = [...features];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    newOrder.forEach((feature, idx) => (feature.order = idx));
+    setFeatures([...newOrder]);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await fetch("/api/admin/RoomFeatures", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          features: features.map(({ id, order }) => ({ id, order })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save order:", error);
+    }
+  };
+
+  const handleEdit = async (id: string) => {
+    try {
+      await fetch("/api/admin/RoomFeatures", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: editing.name }),
+      });
+      setFeatures(
+        features.map((feature) =>
+          feature.id === id ? { ...feature, name: editing.name } : feature
+        )
+      );
+      setEditing({ id: null, name: "" });
+    } catch (error) {
+      console.error("Failed to edit room feature:", error);
     }
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Room Features</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
+    <div className="p-4 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Room Features</h2>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
-          name="name"
-          value={editingRoomFeature ? editingRoomFeature.name : newRoomFeature.name}
-          onChange={handleInputChange}
-          placeholder="Room feature name"
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
+          className="border p-2 flex-grow rounded"
+          value={newFeature}
+          onChange={(e) => setNewFeature(e.target.value)}
+          placeholder="Add new room feature"
         />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          {editingRoomFeature ? 'Update Room Feature' : 'Add Room Feature'}
+        <button className="bg-blue-500 text-white p-2 rounded" onClick={handleAdd}>
+          <FaPlus />
         </button>
-      </form>
-      <ul className="bg-white p-6 rounded-lg shadow-md">
-        {roomFeatures.map((roomFeature) => (
-          <li key={roomFeature.id} className="flex justify-between items-center p-4 border-b border-gray-200 last:border-b-0">
-            <span className="text-gray-700">{roomFeature.name}</span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleEdit(roomFeature)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition duration-200"
-              >
-                Edit
+      </div>
+      <ul className="space-y-2">
+        {features.map((feature, index) => (
+          <li key={feature.id} className="flex items-center justify-between p-2 border rounded">
+            {editing.id === feature.id ? (
+              <input
+                type="text"
+                className="border p-1 flex-grow"
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+            ) : (
+              <span>{feature.name}</span>
+            )}
+            <div className="flex gap-2">
+              {editing.id === feature.id ? (
+                <button className="bg-green-500 text-white p-1 rounded" onClick={() => handleEdit(feature.id)}>
+                  ✅
+                </button>
+              ) : (
+                <button className="text-blue-500" onClick={() => setEditing({ id: feature.id, name: feature.name })}>
+                  <FaEdit />
+                </button>
+              )}
+              <button onClick={() => handleMove(feature.id, "up")} disabled={index === 0} className="text-gray-500">
+                <FaArrowUp />
               </button>
-              <button
-                onClick={() => handleDelete(roomFeature.id)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-              >
-                Delete
+              <button onClick={() => handleMove(feature.id, "down")} disabled={index === features.length - 1} className="text-gray-500">
+                <FaArrowDown />
+              </button>
+              <button className="text-red-500" onClick={() => handleDelete(feature.id)}>
+                <FaTrash />
               </button>
             </div>
           </li>
         ))}
       </ul>
+      <div className="flex justify-end mt-4">
+        <button className="bg-green-500 text-white p-2 rounded flex items-center" onClick={handleSaveOrder}>
+          <FaSave className="mr-2" /> Save Order
+        </button>
+      </div>
     </div>
   );
 };
 
 export default RoomFeatures;
-
-
-
-
-
-
-
-/*crées une mise forme conviviale ajoute les flèches up et down pour modifier ordre et rends ces flèches fonctionnelles. */

@@ -51,7 +51,7 @@ export const contactDetails = [
     "Bungalow", // Bungalow
     "Cottage", // Cottage 
   ];
-  
+   
   export const accomodationCharacteristics = [
     "Remarkable view", // Vue remarquable
     "Prime location", // Localisation remarquable
@@ -59,7 +59,7 @@ export const contactDetails = [
     "Romantic atmosphere", // Ambiance romantique
     "Quiet and relaxing", // Calme et reposant
   ];
-  
+   
   export const beddingConfiguration = [
     "Dormitory", // Dortoir
     "Single room", // Chambre simple
@@ -86,7 +86,7 @@ export const contactDetails = [
     "Urdu", // Urdu
     "Vietnamese", // Vietnamien
     "Turkish", // Turc
-    "Persian", // Persan
+    "Persian", // Persan 
     "Thai", // Thaï
     "Swahili", // Swahili
     "Malay", // Malais

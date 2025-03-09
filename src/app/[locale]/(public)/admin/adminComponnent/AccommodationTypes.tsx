@@ -1,218 +1,159 @@
-"use client";
-import React, { useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, Save } from 'lucide-react'; // Import des icônes
+import { useEffect, useState } from "react";
+import { getAccommodationTypes } from "../../../../../../utils/getAccommodationTypes"; // Ajustez le chemin en fonction de votre structure
+import { FaEdit, FaTrash, FaArrowUp, FaArrowDown, FaPlus, FaSave } from "react-icons/fa";
 
 interface AccommodationType {
   id: string;
   name: string;
-  order: number; // Ajout de l'ordre
+  order: number;
 }
 
-const AccommodationTypes: React.FC = () => {
-  const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>([]);
-  const [newAccommodationType, setNewAccommodationType] = useState<{ name: string }>({ name: '' });
-  const [editingAccommodationType, setEditingAccommodationType] = useState<AccommodationType | null>(null);
+const AccommodationTypes = () => {
+  const [types, setTypes] = useState<AccommodationType[]>([]);
+  const [newType, setNewType] = useState("");
+  const [editing, setEditing] = useState<{ id: string | null; name: string }>({ id: null, name: "" });
 
-  // Fetch all accommodation types
   useEffect(() => {
-    fetchAccommodationTypes();
+    fetchData();
   }, []);
 
-  const fetchAccommodationTypes = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('/api/admin/AccommodationTypes');
-      if (!response.ok) throw new Error('Failed to fetch accommodation types');
-      const data = await response.json();
-      // Sort options by order
-      const sortedData = data.sort((a: AccommodationType, b: AccommodationType) => a.order - b.order);
-      setAccommodationTypes(sortedData);
+      const data = await getAccommodationTypes();
+      setTypes(data);
     } catch (error) {
-      console.error('Error fetching accommodation types:', error);
+      console.error("Failed to fetch accommodation types:", error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (editingAccommodationType) {
-      setEditingAccommodationType({ ...editingAccommodationType, [name]: value });
-    } else {
-      setNewAccommodationType({ ...newAccommodationType, [name]: value });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
+    if (!newType) return;
     try {
-      if (editingAccommodationType) {
-        const response = await fetch('/api/admin/AccommodationTypes', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            id: editingAccommodationType.id, 
-            name: editingAccommodationType.name,
-            order: editingAccommodationType.order 
-          }),
-        });
-        if (!response.ok) throw new Error('Failed to update accommodation type');
-        setEditingAccommodationType(null);
-      } else {
-        // Set order as the highest existing order + 1 or 1 if no existing options
-        const newOrder = accommodationTypes.length > 0 
-          ? Math.max(...accommodationTypes.map(opt => opt.order)) + 1 
-          : 1;
-          
-        const response = await fetch('/api/admin/AccommodationTypes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...newAccommodationType, order: newOrder }),
-        });
-        if (!response.ok) throw new Error('Failed to create accommodation type');
-        setNewAccommodationType({ name: '' });
+      const response = await fetch("/api/admin/AccommodationTypes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newType }),
+      });
+      if (response.ok) {
+        const addedType = await response.json();
+        setTypes([...types, addedType]);
+        setNewType("");
       }
-      fetchAccommodationTypes();
     } catch (error) {
-      console.error('Error submitting accommodation type:', error);
+      console.error("Failed to add accommodation type:", error);
     }
-  };
-
-  const handleEdit = (accommodationType: AccommodationType) => {
-    setEditingAccommodationType(accommodationType);
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/AccommodationTypes', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+      await fetch(`/api/admin/AccommodationTypes?id=${id}`, {
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error('Failed to delete accommodation type');
-      fetchAccommodationTypes();
+      setTypes(types.filter((type) => type.id !== id));
     } catch (error) {
-      console.error('Error deleting accommodation type:', error);
+      console.error("Failed to delete accommodation type:", error);
     }
   };
 
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return; // Already at the top
-
-    const updatedAccommodationTypes = [...accommodationTypes];
-    // Swap orders
-    const tempOrder = updatedAccommodationTypes[index].order;
-    updatedAccommodationTypes[index].order = updatedAccommodationTypes[index - 1].order;
-    updatedAccommodationTypes[index - 1].order = tempOrder;
-
-    // Swap positions in the array
-    [updatedAccommodationTypes[index], updatedAccommodationTypes[index - 1]] = [updatedAccommodationTypes[index - 1], updatedAccommodationTypes[index]];
-
-    setAccommodationTypes(updatedAccommodationTypes);
+  const handleMove = (id: string, direction: "up" | "down") => {
+    const index = types.findIndex((type) => type.id === id);
+    if (index < 0) return;
+    const newOrder = [...types];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    newOrder.forEach((type, idx) => (type.order = idx));
+    setTypes([...newOrder]);
   };
 
-  const handleMoveDown = (index: number) => {
-    if (index === accommodationTypes.length - 1) return; // Already at the bottom
-
-    const updatedAccommodationTypes = [...accommodationTypes];
-    // Swap orders
-    const tempOrder = updatedAccommodationTypes[index].order;
-    updatedAccommodationTypes[index].order = updatedAccommodationTypes[index + 1].order;
-    updatedAccommodationTypes[index + 1].order = tempOrder;
-
-    // Swap positions in the array
-    [updatedAccommodationTypes[index], updatedAccommodationTypes[index + 1]] = [updatedAccommodationTypes[index + 1], updatedAccommodationTypes[index]];
-
-    setAccommodationTypes(updatedAccommodationTypes);
-  };
-
-  const saveOrder = async () => {
+  const handleSaveOrder = async () => {
     try {
-      // Update each accommodation type's order in the database
-      await Promise.all(
-        accommodationTypes.map((accommodationType) =>
-          fetch('/api/admin/AccommodationTypes', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              id: accommodationType.id, 
-              name: accommodationType.name,
-              order: accommodationType.order 
-            }),
-          })
+      await fetch("/api/admin/AccommodationTypes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          types: types.map(({ id, order }) => ({ id, order })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save order:", error);
+    }
+  };
+
+  const handleEdit = async (id: string) => {
+    try {
+      await fetch("/api/admin/AccommodationTypes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: editing.name }),
+      });
+      setTypes(
+        types.map((type) =>
+          type.id === id ? { ...type, name: editing.name } : type
         )
       );
-
-      fetchAccommodationTypes(); // Refresh the list to ensure consistency
+      setEditing({ id: null, name: "" });
     } catch (error) {
-      console.error('Error saving order:', error);
+      console.error("Failed to edit accommodation type:", error);
     }
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Accommodation Types</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
+    <div className="p-4 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Accommodation Types</h2>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
-          name="name"
-          value={editingAccommodationType ? editingAccommodationType.name : newAccommodationType.name}
-          onChange={handleInputChange}
-          placeholder="Accommodation type name"
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
+          className="border p-2 flex-grow rounded"
+          value={newType}
+          onChange={(e) => setNewType(e.target.value)}
+          placeholder="Add new accommodation type"
         />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          {editingAccommodationType ? 'Update Accommodation Type' : 'Add Accommodation Type'}
+        <button className="bg-blue-500 text-white p-2 rounded" onClick={handleAdd}>
+          <FaPlus />
         </button>
-      </form>
-      <ul className="bg-white p-6 rounded-lg shadow-md">
-        {accommodationTypes.map((accommodationType, index) => (
-          <li key={accommodationType.id} className="flex justify-between items-center p-4 border-b border-gray-200 last:border-b-0">
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">{accommodationType.name}</span>
-              <span className="text-gray-500">(Order: {accommodationType.order})</span>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleMoveUp(index)}
-                disabled={index === 0}
-                className={`p-2 rounded-lg ${index === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-600'} text-white transition duration-200`}
-                title="Move Up"
-              >
-                <ArrowUp size={16} />
+      </div>
+      <ul className="space-y-2">
+        {types.map((type, index) => (
+          <li key={type.id} className="flex items-center justify-between p-2 border rounded">
+            {editing.id === type.id ? (
+              <input
+                type="text"
+                className="border p-1 flex-grow"
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+            ) : (
+              <span>{type.name}</span>
+            )}
+            <div className="flex gap-2">
+              {editing.id === type.id ? (
+                <button className="bg-green-500 text-white p-1 rounded" onClick={() => handleEdit(type.id)}>
+                  ✅
+                </button>
+              ) : (
+                <button className="text-blue-500" onClick={() => setEditing({ id: type.id, name: type.name })}>
+                  <FaEdit />
+                </button>
+              )}
+              <button onClick={() => handleMove(type.id, "up")} disabled={index === 0} className="text-gray-500">
+                <FaArrowUp />
               </button>
-              <button
-                onClick={() => handleMoveDown(index)}
-                disabled={index === accommodationTypes.length - 1}
-                className={`p-2 rounded-lg ${index === accommodationTypes.length - 1 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-600'} text-white transition duration-200`}
-                title="Move Down"
-              >
-                <ArrowDown size={16} />
+              <button onClick={() => handleMove(type.id, "down")} disabled={index === types.length - 1} className="text-gray-500">
+                <FaArrowDown />
               </button>
-              <button
-                onClick={() => handleEdit(accommodationType)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition duration-200"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(accommodationType.id)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-              >
-                Delete
+              <button className="text-red-500" onClick={() => handleDelete(type.id)}>
+                <FaTrash />
               </button>
             </div>
           </li>
         ))}
       </ul>
-      <button
-        onClick={saveOrder}
-        className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-200 flex items-center justify-center space-x-2"
-      >
-        <Save size={16} />
-        <span>Enregistrer l'ordre</span>
-      </button>
+      <div className="flex justify-end mt-4">
+        <button className="bg-green-500 text-white p-2 rounded flex items-center" onClick={handleSaveOrder}>
+          <FaSave className="mr-2" /> Save Order
+        </button>
+      </div>
     </div>
   );
 };

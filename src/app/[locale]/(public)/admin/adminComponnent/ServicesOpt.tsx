@@ -1,166 +1,157 @@
-/*
-model Service {
-  id        String  @id @default(uuid())
-  name      String
-  hotels    Hotel[]
-}
- */
-/*
- export const services = [
-    "Bar", // Bar
-    "Restaurant", // Restaurant
-    "Casino", // Casino
-    "Spa / massage", // Spa / massage
-    "Gym", // Salle de sport
-    "Business center", // Centre d'affaires
-    "Boutique", // Boutique
-    "Pool", // Piscine
-    "Water park", // Parc aquatique
-    "Golf", // Golf
-    "Concierge service", // Service de conciergerie
-    "Room service", // Service en chambre
-    "Currency exchange", // Service de change
-    "Wake-up service", // Service de réveil
-    "Laundry service", // Blanchisserie
-    "24/7 reception", // Réception 24/7
-    "Self check-in", // Réception automatique
-    "Bike rental", // Location de vélo
-    "Scooter rental", // Location de scooter
-    "Car rental", // Location de voiture
-    "Shuttle service", // Service de navette
-    "Pets allowed", // Animaux acceptés
-    "Smoking area", // Zone fumeur
-  ];
-*/
- 
-"use client";
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+import { FaEdit, FaTrash, FaArrowUp, FaArrowDown, FaPlus, FaSave } from "react-icons/fa";
 
 interface Service {
   id: string;
   name: string;
+  order: number;
 }
 
-const Services: React.FC = () => {
+const Services = () => {
   const [services, setServices] = useState<Service[]>([]);
-  const [newService, setNewService] = useState<{ name: string }>({ name: '' });
-  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [newService, setNewService] = useState("");
+  const [editing, setEditing] = useState<{ id: string | null; name: string }>({ id: null, name: "" });
 
-  // Fetch all services
   useEffect(() => {
-    fetchServices();
+    fetchData();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchData = async () => {
     try {
       const response = await fetch('/api/admin/Services');
-      if (!response.ok) throw new Error('Failed to fetch services');
       const data = await response.json();
       setServices(data);
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error("Failed to fetch services:", error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (editingService) {
-      setEditingService({ ...editingService, [name]: value });
-    } else {
-      setNewService({ ...newService, [name]: value });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
+    if (!newService) return;
     try {
-      if (editingService) {
-        const response = await fetch('/api/admin/Services', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingService.id, name: editingService.name }),
-        });
-        if (!response.ok) throw new Error('Failed to update service');
-        setEditingService(null);
-      } else {
-        const response = await fetch('/api/admin/Services', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newService),
-        });
-        if (!response.ok) throw new Error('Failed to create service');
-        setNewService({ name: '' });
+      const response = await fetch('/api/admin/Services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newService }),
+      });
+      if (response.ok) {
+        const addedService = await response.json();
+        setServices([...services, addedService]);
+        setNewService("");
       }
-      fetchServices();
     } catch (error) {
-      console.error('Error submitting service:', error);
+      console.error("Failed to add service:", error);
     }
-  };
-
-  const handleEdit = (service: Service) => {
-    setEditingService(service);
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/Services', {
+      await fetch(`/api/admin/Services?id=${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
       });
-      if (!response.ok) throw new Error('Failed to delete service');
-      fetchServices();
+      setServices(services.filter((service) => service.id !== id));
     } catch (error) {
-      console.error('Error deleting service:', error);
+      console.error("Failed to delete service:", error);
+    }
+  };
+
+  const handleMove = (id: string, direction: "up" | "down") => {
+    const index = services.findIndex((service) => service.id === id);
+    if (index < 0) return;
+    const newOrder = [...services];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    newOrder.forEach((service, idx) => (service.order = idx));
+    setServices([...newOrder]);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await fetch('/api/admin/Services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          services: services.map(({ id, order }) => ({ id, order })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save order:", error);
+    }
+  };
+
+  const handleEdit = async (id: string) => {
+    try {
+      await fetch('/api/admin/Services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: editing.name }),
+      });
+      setServices(services.map((service) => (service.id === id ? { ...service, name: editing.name } : service)));
+      setEditing({ id: null, name: "" });
+    } catch (error) {
+      console.error("Failed to edit service:", error);
     }
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Services</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
+    <div className="p-4 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Services</h2>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
-          name="name"
-          value={editingService ? editingService.name : newService.name}
-          onChange={handleInputChange}
-          placeholder="Service name"
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
+          className="border p-2 flex-grow rounded"
+          value={newService}
+          onChange={(e) => setNewService(e.target.value)}
+          placeholder="Add new service"
         />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          {editingService ? 'Update Service' : 'Add Service'}
+        <button className="bg-blue-500 text-white p-2 rounded" onClick={handleAdd}>
+          <FaPlus />
         </button>
-      </form>
-      <ul className="bg-white p-6 rounded-lg shadow-md">
-        {services.map((service) => (
-          <li key={service.id} className="flex justify-between items-center p-4 border-b border-gray-200 last:border-b-0">
-            <span className="text-gray-700">{service.name}</span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleEdit(service)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition duration-200"
-              >
-                Edit
+      </div>
+      <ul className="space-y-2">
+        {services.map((service, index) => (
+          <li key={service.id} className="flex items-center justify-between p-2 border rounded">
+            {editing.id === service.id ? (
+              <input
+                type="text"
+                className="border p-1 flex-grow"
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+            ) : (
+              <span>{service.name}</span>
+            )}
+            <div className="flex gap-2">
+              {editing.id === service.id ? (
+                <button className="bg-green-500 text-white p-1 rounded" onClick={() => handleEdit(service.id)}>
+                  ✅
+                </button>
+              ) : (
+                <button className="text-blue-500" onClick={() => setEditing({ id: service.id, name: service.name })}>
+                  <FaEdit />
+                </button>
+              )}
+              <button onClick={() => handleMove(service.id, "up")} disabled={index === 0} className="text-gray-500">
+                <FaArrowUp />
               </button>
-              <button
-                onClick={() => handleDelete(service.id)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-              >
-                Delete
+              <button onClick={() => handleMove(service.id, "down")} disabled={index === services.length - 1} className="text-gray-500">
+                <FaArrowDown />
+              </button>
+              <button className="text-red-500" onClick={() => handleDelete(service.id)}>
+                <FaTrash />
               </button>
             </div>
           </li>
         ))}
       </ul>
+      <div className="flex justify-end mt-4">
+        <button className="bg-green-500 text-white p-2 rounded flex items-center" onClick={handleSaveOrder}>
+          <FaSave className="mr-2" /> Save Order
+        </button>
+      </div>
     </div>
   );
 };
 
 export default Services;
-
-
-/*crées une mise forme conviviale ajoute les flèches up et down pour modifier ordre et rends ces flèches fonctionnelles. */

@@ -9,7 +9,9 @@ import Destinations from './adminComponnent/Destinations';
 import ParkingOptions from './adminComponnent/ParkingOptions';
 import RoomFeatures from './adminComponnent/RoomFeatures';
 import Services from './adminComponnent/ServicesOpt';
-import { Languages, Menu, X } from 'lucide-react';
+import Lang from './adminComponnent/languges';
+import {  Menu, X } from 'lucide-react';
+import MealPlan from './adminComponnent/MealPlan';
 
 function AdminDashboard() {
   const [activeComponent, setActiveComponent] = useState<string>('Accessibility Options');
@@ -25,7 +27,9 @@ function AdminDashboard() {
     'Parking Options': <ParkingOptions />,
     'Room Features': <RoomFeatures />,
     'Services': <Services />,
-    'Languages': <Languages />
+    'Languages': <Lang />,
+    'MealPlans': <MealPlan />
+
   };
 
   const components = Object.keys(componentMap).map(name => ({

@@ -1,149 +1,158 @@
-/*
-  export const parkingOptions = [
-    "Secure parking", // Parking sécurisé
-    "Covered parking", // Parking couvert
-    "Free parking", // Parking gratuit
-    "Paid parking", // Parking payant
-    "Electric vehicle charging station", // Borne de recharge pour voiture électrique
-  ];
- */
-/*
-model ParkingOption {
-  id        String  @id @default(uuid())
-  name      String
-  hotels    Hotel[]
-}
-*/
-
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+import { getParkingOptions } from "../../../../../../utils/getParkingOptions"; 
+import { FaEdit, FaTrash, FaArrowUp, FaArrowDown, FaPlus, FaSave } from "react-icons/fa";
 
 interface ParkingOption {
   id: string;
   name: string;
+  order: number;
 }
 
-const ParkingOptions: React.FC = () => {
+const ParkingOptions = () => {
   const [parkingOptions, setParkingOptions] = useState<ParkingOption[]>([]);
-  const [newParkingOption, setNewParkingOption] = useState<{ name: string }>({ name: '' });
-  const [editingParkingOption, setEditingParkingOption] = useState<ParkingOption | null>(null);
+  const [newParkingOption, setNewParkingOption] = useState("");
+  const [editing, setEditing] = useState<{ id: string | null; name: string }>({ id: null, name: "" });
 
-  // Fetch all parking options
   useEffect(() => {
-    fetchParkingOptions();
+    fetchData();
   }, []);
 
-  const fetchParkingOptions = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('/api/admin/ParkingOptions');
-      if (!response.ok) throw new Error('Failed to fetch parking options');
-      const data = await response.json();
+      const data = await getParkingOptions(); // Utilisation de getParkingOption
       setParkingOptions(data);
     } catch (error) {
-      console.error('Error fetching parking options:', error);
+      console.error("Failed to fetch parking options:", error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (editingParkingOption) {
-      setEditingParkingOption({ ...editingParkingOption, [name]: value });
-    } else {
-      setNewParkingOption({ ...newParkingOption, [name]: value });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
+    if (!newParkingOption) return;
     try {
-      if (editingParkingOption) {
-        const response = await fetch('/api/admin/ParkingOptions', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingParkingOption.id, name: editingParkingOption.name }),
-        });
-        if (!response.ok) throw new Error('Failed to update parking option');
-        setEditingParkingOption(null);
-      } else {
-        const response = await fetch('/api/admin/ParkingOptions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newParkingOption),
-        });
-        if (!response.ok) throw new Error('Failed to create parking option');
-        setNewParkingOption({ name: '' });
+      const response = await fetch('/api/admin/ParkingOptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newParkingOption }),
+      });
+      if (response.ok) {
+        const addedParkingOption = await response.json();
+        setParkingOptions([...parkingOptions, addedParkingOption]);
+        setNewParkingOption("");
       }
-      fetchParkingOptions();
     } catch (error) {
-      console.error('Error submitting parking option:', error);
+      console.error("Failed to add parking option:", error);
     }
-  };
-
-  const handleEdit = (parkingOption: ParkingOption) => {
-    setEditingParkingOption(parkingOption);
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/ParkingOptions', {
+      await fetch(`/api/admin/ParkingOptions?id=${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
       });
-      if (!response.ok) throw new Error('Failed to delete parking option');
-      fetchParkingOptions();
+      setParkingOptions(parkingOptions.filter((option) => option.id !== id));
     } catch (error) {
-      console.error('Error deleting parking option:', error);
+      console.error("Failed to delete parking option:", error);
     }
   };
 
+  const handleMove = (id: string, direction: "up" | "down") => {
+    const index = parkingOptions.findIndex((option) => option.id === id);
+    if (index < 0) return;
+    const newOrder = [...parkingOptions];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    newOrder.forEach((option, idx) => (option.order = idx));
+    setParkingOptions([...newOrder]);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await fetch('/api/admin/ParkingOptions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parkingOptions: parkingOptions.map(({ id, order }) => ({ id, order })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save order:", error);
+    }
+  };
+
+  const handleEdit = async (id: string) => {
+    try {
+      await fetch('/api/admin/ParkingOptions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: editing.name }),
+      });
+      setParkingOptions(parkingOptions.map((option) => (option.id === id ? { ...option, name: editing.name } : option)));
+      setEditing({ id: null, name: "" });
+    } catch (error) {
+      console.error("Failed to edit parking option:", error);
+    }
+  };
+ 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Parking Options</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
+    <div className="p-4 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Parking Options</h2>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
-          name="name"
-          value={editingParkingOption ? editingParkingOption.name : newParkingOption.name}
-          onChange={handleInputChange}
-          placeholder="Parking option name"
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
+          className="border p-2 flex-grow rounded"
+          value={newParkingOption}
+          onChange={(e) => setNewParkingOption(e.target.value)}
+          placeholder="Add new parking option"
         />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          {editingParkingOption ? 'Update Parking Option' : 'Add Parking Option'}
+        <button className="bg-blue-500 text-white p-2 rounded" onClick={handleAdd}>
+          <FaPlus />
         </button>
-      </form>
-      <ul className="bg-white p-6 rounded-lg shadow-md">
-        {parkingOptions.map((parkingOption) => (
-          <li key={parkingOption.id} className="flex justify-between items-center p-4 border-b border-gray-200 last:border-b-0">
-            <span className="text-gray-700">{parkingOption.name}</span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleEdit(parkingOption)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition duration-200"
-              >
-                Edit
+      </div>
+      <ul className="space-y-2">
+        {parkingOptions.map((option, index) => (
+          <li key={option.id} className="flex items-center justify-between p-2 border rounded">
+            {editing.id === option.id ? (
+              <input
+                type="text"
+                className="border p-1 flex-grow"
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+            ) : (
+              <span>{option.name}</span>
+            )}
+            <div className="flex gap-2">
+              {editing.id === option.id ? (
+                <button className="bg-green-500 text-white p-1 rounded" onClick={() => handleEdit(option.id)}>
+                  ✅
+                </button>
+              ) : (
+                <button className="text-blue-500" onClick={() => setEditing({ id: option.id, name: option.name })}>
+                  <FaEdit />
+                </button>
+              )}
+              <button onClick={() => handleMove(option.id, "up")} disabled={index === 0} className="text-gray-500">
+                <FaArrowUp />
               </button>
-              <button
-                onClick={() => handleDelete(parkingOption.id)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-              >
-                Delete
+              <button onClick={() => handleMove(option.id, "down")} disabled={index === parkingOptions.length - 1} className="text-gray-500">
+                <FaArrowDown />
+              </button>
+              <button className="text-red-500" onClick={() => handleDelete(option.id)}>
+                <FaTrash />
               </button>
             </div>
           </li>
         ))}
       </ul>
+      <div className="flex justify-end mt-4">
+        <button className="bg-green-500 text-white p-2 rounded flex items-center" onClick={handleSaveOrder}>
+          <FaSave className="mr-2" /> Save Order
+        </button>
+      </div>
     </div>
   );
 };
 
 export default ParkingOptions;
-
-
-
-/*crées une mise forme conviviale ajoute les flèches up et down pour modifier ordre et rends ces flèches fonctionnelles. */

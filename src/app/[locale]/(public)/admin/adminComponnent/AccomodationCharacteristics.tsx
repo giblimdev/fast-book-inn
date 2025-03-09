@@ -1,155 +1,157 @@
-/*
-model AccommodationCharacteristic {
-  id        String  @id @default(uuid())
-  name      String
-  hotels    Hotel[]
-}
-*/
-
-/*
- export const accomodationCharacteristics = [
-    "Remarkable view", // Vue remarquable
-    "Prime location", // Localisation remarquable
-    "Vibrant nightlife", // Vie nocturne intense
-    "Romantic atmosphere", // Ambiance romantique
-    "Quiet and relaxing", // Calme et reposant
-  ];
-*/
-
-
-"use client";
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+import { getAccommodationCharacteristics } from "../../../../../../utils/getAccomodationCharacteristics";
+import { FaEdit, FaTrash, FaArrowUp, FaArrowDown, FaPlus, FaSave } from "react-icons/fa";
 
 interface AccommodationCharacteristic {
   id: string;
   name: string;
+  order: number;
 }
 
-const AccommodationCharacteristics: React.FC = () => {
-  const [accommodationCharacteristics, setAccommodationCharacteristics] = useState<AccommodationCharacteristic[]>([]);
-  const [newAccommodationCharacteristic, setNewAccommodationCharacteristic] = useState<{ name: string }>({ name: '' });
-  const [editingAccommodationCharacteristic, setEditingAccommodationCharacteristic] = useState<AccommodationCharacteristic | null>(null);
+const AccommodationCharacteristics = () => {
+  const [characteristics, setCharacteristics] = useState<AccommodationCharacteristic[]>([]);
+  const [newCharacteristic, setNewCharacteristic] = useState("");
+  const [editing, setEditing] = useState<{ id: string | null; name: string }>({ id: null, name: "" });
 
-  // Fetch all accommodation characteristics
   useEffect(() => {
-    fetchAccommodationCharacteristics();
+    fetchData();
   }, []);
 
-  const fetchAccommodationCharacteristics = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('/api/admin/AccomodationCharacteristics');
-      if (!response.ok) throw new Error('Failed to fetch accommodation characteristics');
-      const data = await response.json();
-      setAccommodationCharacteristics(data);
+      const data = await getAccommodationCharacteristics();
+      setCharacteristics(data);
     } catch (error) {
-      console.error('Error fetching accommodation characteristics:', error);
+      console.error("Failed to fetch characteristics:", error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (editingAccommodationCharacteristic) {
-      setEditingAccommodationCharacteristic({ ...editingAccommodationCharacteristic, [name]: value });
-    } else {
-      setNewAccommodationCharacteristic({ ...newAccommodationCharacteristic, [name]: value });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
+    if (!newCharacteristic) return;
     try {
-      if (editingAccommodationCharacteristic) {
-        const response = await fetch('/api/admin/AccomodationCharacteristics', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingAccommodationCharacteristic.id, name: editingAccommodationCharacteristic.name }),
-        });
-        if (!response.ok) throw new Error('Failed to update accommodation characteristic');
-        setEditingAccommodationCharacteristic(null);
-      } else {
-        const response = await fetch('/api/admin/AccomodationCharacteristics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newAccommodationCharacteristic),
-        });
-        if (!response.ok) throw new Error('Failed to create accommodation characteristic');
-        setNewAccommodationCharacteristic({ name: '' });
+      const response = await fetch('/api/admin/AccomodationCharacteristics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCharacteristic }),
+      });
+      if (response.ok) {
+        const addedCharacteristic = await response.json();
+        setCharacteristics([...characteristics, addedCharacteristic]);
+        setNewCharacteristic("");
       }
-      fetchAccommodationCharacteristics();
     } catch (error) {
-      console.error('Error submitting accommodation characteristic:', error);
+      console.error("Failed to add characteristic:", error);
     }
-  };
-
-  const handleEdit = (accommodationCharacteristic: AccommodationCharacteristic) => {
-    setEditingAccommodationCharacteristic(accommodationCharacteristic);
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/AccomodationCharacteristics', {
+      await fetch(`/api/admin/AccomodationCharacteristics?id=${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
       });
-      if (!response.ok) throw new Error('Failed to delete accommodation characteristic');
-      fetchAccommodationCharacteristics();
+      setCharacteristics(characteristics.filter((characteristic) => characteristic.id !== id));
     } catch (error) {
-      console.error('Error deleting accommodation characteristic:', error);
+      console.error("Failed to delete characteristic:", error);
+    }
+  };
+
+  const handleMove = (id: string, direction: "up" | "down") => {
+    const index = characteristics.findIndex((characteristic) => characteristic.id === id);
+    if (index < 0) return;
+    const newOrder = [...characteristics];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    newOrder.forEach((characteristic, idx) => (characteristic.order = idx));
+    setCharacteristics([...newOrder]);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await fetch('/api/admin/AccomodationCharacteristics', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characteristics: characteristics.map(({ id, order }) => ({ id, order })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save order:", error);
+    }
+  };
+
+  const handleEdit = async (id: string) => {
+    try {
+      await fetch('/api/admin/AccomodationCharacteristics', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: editing.name }),
+      });
+      setCharacteristics(characteristics.map((characteristic) => (characteristic.id === id ? { ...characteristic, name: editing.name } : characteristic)));
+      setEditing({ id: null, name: "" });
+    } catch (error) {
+      console.error("Failed to edit characteristic:", error);
     }
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Accommodation Characteristics</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
+    <div className="p-4 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Accommodation Characteristics</h2>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
-          name="name"
-          value={editingAccommodationCharacteristic ? editingAccommodationCharacteristic.name : newAccommodationCharacteristic.name}
-          onChange={handleInputChange}
-          placeholder="Accommodation characteristic name"
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
+          className="border p-2 flex-grow rounded"
+          value={newCharacteristic}
+          onChange={(e) => setNewCharacteristic(e.target.value)}
+          placeholder="Add new characteristic"
         />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          {editingAccommodationCharacteristic ? 'Update Accommodation Characteristic' : 'Add Accommodation Characteristic'}
+        <button className="bg-blue-500 text-white p-2 rounded" onClick={handleAdd}>
+          <FaPlus />
         </button>
-      </form>
-      <ul className="bg-white p-6 rounded-lg shadow-md">
-        {accommodationCharacteristics.map((accommodationCharacteristic) => (
-          <li key={accommodationCharacteristic.id} className="flex justify-between items-center p-4 border-b border-gray-200 last:border-b-0">
-            <span className="text-gray-700">{accommodationCharacteristic.name}</span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleEdit(accommodationCharacteristic)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition duration-200"
-              >
-                Edit
+      </div>
+      <ul className="space-y-2">
+        {characteristics.map((characteristic, index) => (
+          <li key={characteristic.id} className="flex items-center justify-between p-2 border rounded">
+            {editing.id === characteristic.id ? (
+              <input
+                type="text"
+                className="border p-1 flex-grow"
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+            ) : (
+              <span>{characteristic.name}</span>
+            )}
+            <div className="flex gap-2">
+              {editing.id === characteristic.id ? (
+                <button className="bg-green-500 text-white p-1 rounded" onClick={() => handleEdit(characteristic.id)}>
+                  ✅
+                </button>
+              ) : (
+                <button className="text-blue-500" onClick={() => setEditing({ id: characteristic.id, name: characteristic.name })}>
+                  <FaEdit />
+                </button>
+              )}
+              <button onClick={() => handleMove(characteristic.id, "up")} disabled={index === 0} className="text-gray-500">
+                <FaArrowUp />
               </button>
-              <button
-                onClick={() => handleDelete(accommodationCharacteristic.id)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-              >
-                Delete
+              <button onClick={() => handleMove(characteristic.id, "down")} disabled={index === characteristics.length - 1} className="text-gray-500">
+                <FaArrowDown />
+              </button>
+              <button className="text-red-500" onClick={() => handleDelete(characteristic.id)}>
+                <FaTrash />
               </button>
             </div>
           </li>
         ))}
       </ul>
+      <div className="flex justify-end mt-4">
+        <button className="bg-green-500 text-white p-2 rounded flex items-center" onClick={handleSaveOrder}>
+          <FaSave className="mr-2" /> Save Order
+        </button>
+      </div>
     </div>
   );
 };
 
 export default AccommodationCharacteristics;
-
-
-
-
-
-/*crées une mise forme conviviale ajoute les flèches up et down pour modifier ordre et rends ces flèches fonctionnelles. */
-
-

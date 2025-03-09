@@ -1,4 +1,3 @@
-// app/api/admin/ParkingOption/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -7,7 +6,9 @@ const prisma = new PrismaClient();
 // GET: Fetch all parking options
 export async function GET() {
   try {
-    const parkingOptions = await prisma.parkingOption.findMany();
+    const parkingOptions = await prisma.parkingOption.findMany({
+      orderBy: { order: 'asc' }, // Fetch parking options ordered by 'order'
+    });
     return NextResponse.json(parkingOptions);
   } catch (error) {
     console.error('Error fetching parking options:', error);
@@ -29,8 +30,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Calculate the next order value
+    const maxOrderOption = await prisma.parkingOption.findFirst({
+      orderBy: { order: 'desc' },
+    });
+    const order = maxOrderOption ? maxOrderOption.order + 1 : 0;
+
     const newParkingOption = await prisma.parkingOption.create({
-      data: { name },
+      data: { name, order },
     });
     return NextResponse.json(newParkingOption, { status: 201 });
   } catch (error) {
@@ -45,7 +52,27 @@ export async function POST(request: Request) {
 // PUT: Update a parking option
 export async function PUT(request: Request) {
   try {
-    const { id, name } = await request.json();
+    const body = await request.json();
+
+    // Handle bulk order updates
+    if (body.parkingOptions) {
+      const { parkingOptions } = body;
+
+      // Update the order of all parking options
+      await Promise.all(
+        parkingOptions.map(async (option: { id: string; order: number }) => {
+          await prisma.parkingOption.update({
+            where: { id: option.id },
+            data: { order: option.order },
+          });
+        })
+      );
+
+      return NextResponse.json({ success: true });
+    }
+
+    // Handle single parking option update (name or order)
+    const { id, name } = body;
     if (!id || !name) {
       return NextResponse.json(
         { error: 'ID and Name are required' },
@@ -70,7 +97,8 @@ export async function PUT(request: Request) {
 // DELETE: Delete a parking option
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json();
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id'); // Extract ID from query parameters
     if (!id) {
       return NextResponse.json(
         { error: 'ID is required' },
@@ -89,4 +117,4 @@ export async function DELETE(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
