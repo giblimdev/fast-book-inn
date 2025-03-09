@@ -1,0 +1,93 @@
+{
+  "HomePage": {
+    "title": "Hello world!",
+    "about": "Go to the about page"
+  },
+  "Nav": {
+    "accommodations": "Accommodations",
+    "aboutUs": "About Us",
+    "contactUs": "Contact Us",
+    "Labeling": "Labeling",
+    "dev": "Development",
+    "admin": "Admin"
+  },
+  "LogStatus": {
+    "profileImage": "Profile Image",
+    "profile": "Profile",
+    "admin": "Admin",
+    "logout": "Log out",
+    "login": "Login"
+  },
+  "LoginPage": {
+    "title": "Login",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "loginButton": "Login",
+    "loading": "Logging in...",
+    "noAccount": "Don't have an account? ",
+    "registerLink": "Sign up",
+    "errors": {
+      "generic": "An error occurred",
+      "invalidCredentials": "Invalid email or password"
+    },
+    "success": "Login successful!"
+  }, 
+  "RegisterPage": {
+    "title": "Create Account",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "At least 8 characters",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordPlaceholder": "Repeat your password",
+    "languageLabel": "Preferred Language",
+    "registerButton": "Register",
+    "alreadyHaveAccount": "Already have an account? ",
+    "loginLink": "Log in",
+    "errors": {
+      "invalidEmail": "Please enter a valid email address",
+      "passwordTooShort": "Password must be at least 8 characters long",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "registrationFailed": "Registration failed",
+      "networkError": "Network error. Please try again."
+    }
+  },
+  "Home": {
+    "heroSlogan": "Explore the World, Your Way",
+    "heroSubSlogan": "Find the perfect stay for your next adventure",
+    "accommodationTypes": "Accommodation Types",
+    "hotelsDescription": "Luxurious hotels with world-class amenities.",
+    "apartmentsDescription": "Comfortable apartments for a home-like experience.",
+    "villasDescription": "Private villas for a secluded getaway.",
+    "popularDestinations": "Popular Destinations",
+    "parisDescription": "The city of love, art, and culture.",
+    "newYorkDescription": "The bustling metropolis that never sleeps.",
+    "tokyoDescription": "A blend of tradition and futuristic innovation."
+  },
+  "HeroForm": {
+    "destinationLabel": "Where are you going?",
+    "destinationPlaceholder": "Ex: Paris, New York...",
+    "datesLabel": "Dates",
+    "datesPlaceholder": "Add your dates",
+    "voyageursLabel": "Travelers",
+    "voyageursPlaceholder": "Number of travelers",
+    "searchButton": "Search"
+  },
+  "Contact": {
+    "title": "Contact Us",
+    "info": "Our Information",
+    "address": "Address",
+    "email": "Email",
+    "phone": "Phone",
+    "hours": "Opening Hours",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "subjectLabel": "Subject",
+    "messageLabel": "Message",
+    "newMessage": "Send a New Message",
+    "sending": "Sending...",
+    "send": "Send Message"
+  }
+}
+
+ 

@@ -1,0 +1,53 @@
+{
+    "HomePage": {
+      "title": "Olá, mundo!",
+      "about": "Ir para a página Sobre"
+    },
+    "Nav": {
+      "accommodations": "Acomodações",
+      "aboutUs": "Sobre nós",
+      "contactUs": "Contate-nos",
+      "dev": "Desenvolvimento"
+    },
+    "LogStatus": {
+      "profileImage": "Imagem de perfil",
+      "profile": "Perfil",
+      "admin": "Administrador",
+      "logout": "Sair",
+      "login": "Entrar"
+    },
+    "LoginPage": {
+      "title": "Entrar",
+      "emailPlaceholder": "Email",
+      "passwordPlaceholder": "Senha",
+      "loginButton": "Entrar",
+      "loading": "Entrando...",
+      "noAccount": "Não tem uma conta? ",
+      "registerLink": "Cadastre-se",
+      "errors": {
+        "generic": "Ocorreu um erro",
+        "invalidCredentials": "Email ou senha inválidos"
+      },
+      "success": "Login bem-sucedido!"
+    },
+    "RegisterPage": {
+      "title": "Criar conta",
+      "emailLabel": "Endereço de email",
+      "emailPlaceholder": "voce@exemplo.com",
+      "passwordLabel": "Senha",
+      "passwordPlaceholder": "Pelo menos 8 caracteres",
+      "confirmPasswordLabel": "Confirmar senha",
+      "confirmPasswordPlaceholder": "Repita sua senha",
+      "languageLabel": "Idioma preferido",
+      "registerButton": "Cadastrar",
+      "alreadyHaveAccount": "Já tem uma conta? ",
+      "loginLink": "Entrar",
+      "errors": {
+        "invalidEmail": "Por favor, insira um endereço de email válido",
+        "passwordTooShort": "A senha deve ter pelo menos 8 caracteres",
+        "passwordsDoNotMatch": "As senhas não correspondem",
+        "registrationFailed": "Falha no registro",
+        "networkError": "Erro de rede. Por favor, tente novamente."
+      }
+    }
+  }

@@ -1,0 +1,53 @@
+{
+    "HomePage": {
+      "title": "Привет, мир!",
+      "about": "Перейти на страницу «О нас»"
+    },
+    "Nav": {
+      "accommodations": "Размещение",
+      "aboutUs": "О нас",
+      "contactUs": "Связаться с нами",
+      "dev": "Разработка"
+    },
+    "LogStatus": {
+      "profileImage": "Изображение профиля",
+      "profile": "Профиль",
+      "admin": "Администратор",
+      "logout": "Выйти",
+      "login": "Войти"
+    },
+    "LoginPage": {
+      "title": "Войти",
+      "emailPlaceholder": "Электронная почта",
+      "passwordPlaceholder": "Пароль",
+      "loginButton": "Войти",
+      "loading": "Вход...",
+      "noAccount": "Нет аккаунта? ",
+      "registerLink": "Зарегистрироваться",
+      "errors": {
+        "generic": "Произошла ошибка",
+        "invalidCredentials": "Неверный адрес электронной почты или пароль"
+      },
+      "success": "Вход выполнен успешно!"
+    },
+    "RegisterPage": {
+      "title": "Создать аккаунт",
+      "emailLabel": "Адрес электронной почты",
+      "emailPlaceholder": "вы@пример.ком",
+      "passwordLabel": "Пароль",
+      "passwordPlaceholder": "Не менее 8 символов",
+      "confirmPasswordLabel": "Подтвердить пароль",
+      "confirmPasswordPlaceholder": "Повторите пароль",
+      "languageLabel": "Предпочитаемый язык",
+      "registerButton": "Зарегистрироваться",
+      "alreadyHaveAccount": "Уже есть аккаунт? ",
+      "loginLink": "Войти",
+      "errors": {
+        "invalidEmail": "Пожалуйста, введите действительный адрес электронной почты",
+        "passwordTooShort": "Пароль должен содержать не менее 8 символов",
+        "passwordsDoNotMatch": "Пароли не совпадают",
+        "registrationFailed": "Ошибка регистрации",
+        "networkError": "Ошибка сети. Пожалуйста, попробуйте еще раз."
+      }
+    }
+  }

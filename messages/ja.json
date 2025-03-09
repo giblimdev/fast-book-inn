@@ -1,0 +1,53 @@
+{
+    "HomePage": {
+      "title": "こんにちは、世界！",
+      "about": "詳細ページへ"
+    },
+    "Nav": {
+      "accommodations": "宿泊施設",
+      "aboutUs": "私たちについて",
+      "contactUs": "お問い合わせ",
+      "dev": "開発"
+    },
+    "LogStatus": {
+      "profileImage": "プロフィール画像",
+      "profile": "プロフィール",
+      "admin": "管理者",
+      "logout": "ログアウト",
+      "login": "ログイン"
+    },
+    "LoginPage": {
+      "title": "ログイン",
+      "emailPlaceholder": "メールアドレス",
+      "passwordPlaceholder": "パスワード",
+      "loginButton": "ログイン",
+      "loading": "ログイン中...",
+      "noAccount": "アカウントをお持ちでない場合 ",
+      "registerLink": "新規登録",
+      "errors": {
+        "generic": "エラーが発生しました",
+        "invalidCredentials": "メールアドレスまたはパスワードが無効です"
+      },
+      "success": "ログインに成功しました！"
+    },
+    "RegisterPage": {
+      "title": "アカウント作成",
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "example@example.com",
+      "passwordLabel": "パスワード",
+      "passwordPlaceholder": "8文字以上",
+      "confirmPasswordLabel": "パスワード確認",
+      "confirmPasswordPlaceholder": "パスワードを再入力",
+      "languageLabel": "希望の言語",
+      "registerButton": "登録",
+      "alreadyHaveAccount": "既にアカウントをお持ちの場合 ",
+      "loginLink": "ログイン",
+      "errors": {
+        "invalidEmail": "有効なメールアドレスを入力してください",
+        "passwordTooShort": "パスワードは8文字以上必要です",
+        "passwordsDoNotMatch": "パスワードが一致しません",
+        "registrationFailed": "登録に失敗しました",
+        "networkError": "ネットワークエラー。もう一度お試しください。"
+      }
+    }
+  }

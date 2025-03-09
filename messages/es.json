@@ -1,0 +1,91 @@
+{
+  "HomePage": {
+    "title": "¡Hola mundo!",
+    "about": "Ir a la página acerca de"
+  },
+  "Nav": {
+    "accommodations": "Alojamientos",
+    "aboutUs": "Acerca de nosotros",
+    "contactUs": "Contáctenos",
+    "Labeling": "Etiquetado",
+    "dev": "Desarrollo",
+    "admin": "Admin"
+  },
+  "LogStatus": {
+    "profileImage": "Imagen de perfil",
+    "profile": "Perfil",
+    "admin": "Administrador",
+    "logout": "Cerrar sesión",
+    "login": "Iniciar sesión"
+  },
+  "LoginPage": {
+    "title": "Iniciar sesión",
+    "emailPlaceholder": "Correo electrónico",
+    "passwordPlaceholder": "Contraseña",
+    "loginButton": "Iniciar sesión",
+    "loading": "Iniciando sesión...",
+    "noAccount": "¿No tienes una cuenta? ",
+    "registerLink": "Regístrate",
+    "errors": {
+      "generic": "Ocurrió un error",
+      "invalidCredentials": "Correo electrónico o contraseña no válidos"
+    },
+    "success": "¡Inicio de sesión exitoso!"
+  },
+  "RegisterPage": {
+    "title": "Crear cuenta",
+    "emailLabel": "Dirección de correo electrónico",
+    "emailPlaceholder": "tú@ejemplo.com",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Al menos 8 caracteres",
+    "confirmPasswordLabel": "Confirmar contraseña",
+    "confirmPasswordPlaceholder": "Repite tu contraseña",
+    "languageLabel": "Idioma preferido",
+    "registerButton": "Registrarse",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta? ",
+    "loginLink": "Iniciar sesión",
+    "errors": {
+      "invalidEmail": "Por favor, introduce una dirección de correo electrónico válida",
+      "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "passwordsDoNotMatch": "Las contraseñas no coinciden",
+      "registrationFailed": "Error al registrarse",
+      "networkError": "Error de red. Por favor, inténtalo de nuevo."
+    }
+  },
+  "Home": {
+    "heroSlogan": "Explora el mundo, a tu manera",
+    "heroSubSlogan": "Encuentra la estancia perfecta para tu próxima aventura",
+    "accommodationTypes": "Tipos de alojamiento",
+    "hotelsDescription": "Hoteles de lujo con comodidades de clase mundial.",
+    "apartmentsDescription": "Apartamentos cómodos para una experiencia como en casa.",
+    "villasDescription": "Villas privadas para una escapada aislada.",
+    "popularDestinations": "Destinos populares",
+    "parisDescription": "La ciudad del amor, el arte y la cultura.",
+    "newYorkDescription": "La bulliciosa metrópolis que nunca duerme.",
+    "tokyoDescription": "Una mezcla de tradición e innovación futurista."
+  },
+  "HeroForm": {
+    "destinationLabel": "¿A dónde vas?",
+    "destinationPlaceholder": "Ej: París, Nueva York...",
+    "datesLabel": "Fechas",
+    "datesPlaceholder": "Añade tus fechas",
+    "voyageursLabel": "Viajeros",
+    "voyageursPlaceholder": "Número de viajeros",
+    "searchButton": "Buscar"
+  },
+  "Contact": {
+    "title": "Contáctenos",
+    "info": "Nuestra información",
+    "address": "Dirección",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "hours": "Horario de atención",
+    "nameLabel": "Nombre",
+    "emailLabel": "Correo electrónico",
+    "subjectLabel": "Asunto",
+    "messageLabel": "Mensaje",
+    "newMessage": "Enviar un nuevo mensaje",
+    "sending": "Enviando...",
+    "send": "Enviar mensaje"
+  }
+}

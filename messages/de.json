@@ -1,0 +1,53 @@
+{
+  "HomePage": {
+    "title": "Hallo Welt!",
+    "about": "Zur Über uns-Seite gehen"
+  },
+  "Nav": {
+    "accommodations": "Unterkünfte",
+    "aboutUs": "Über uns",
+    "contactUs": "Kontaktieren Sie uns",
+    "dev": "Entwicklung"
+  },
+  "LogStatus": {
+    "profileImage": "Profilbild",
+    "profile": "Profil",
+    "admin": "Admin",
+    "logout": "Abmelden",
+    "login": "Anmelden"
+  },
+  "LoginPage": {
+    "title": "Anmelden",
+    "emailPlaceholder": "E-Mail",
+    "passwordPlaceholder": "Passwort",
+    "loginButton": "Anmelden",
+    "loading": "Anmeldung läuft...",
+    "noAccount": "Noch kein Konto? ",
+    "registerLink": "Registrieren",
+    "errors": {
+      "generic": "Ein Fehler ist aufgetreten",
+      "invalidCredentials": "Ungültige E-Mail oder Passwort"
+    },
+    "success": "Anmeldung erfolgreich!"
+  },
+  "RegisterPage": {
+    "title": "Konto erstellen",
+    "emailLabel": "E-Mail-Adresse",
+    "emailPlaceholder": "du@beispiel.com",
+    "passwordLabel": "Passwort",
+    "passwordPlaceholder": "Mindestens 8 Zeichen",
+    "confirmPasswordLabel": "Passwort bestätigen",
+    "confirmPasswordPlaceholder": "Wiederholen Sie Ihr Passwort",
+    "languageLabel": "Bevorzugte Sprache",
+    "registerButton": "Registrieren",
+    "alreadyHaveAccount": "Haben Sie bereits ein Konto? ",
+    "loginLink": "Anmelden",
+    "errors": {
+      "invalidEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+      "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen lang sein",
+      "passwordsDoNotMatch": "Passwörter stimmen nicht überein",
+      "registrationFailed": "Registrierung fehlgeschlagen",
+      "networkError": "Netzwerkfehler. Bitte versuchen Sie es erneut."
+    }
+  }
+}

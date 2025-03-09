@@ -1,0 +1,53 @@
+{
+    "HomePage": {
+      "title": "مرحباً بالعالم!",
+      "about": "اذهب إلى صفحة حول"
+    },
+    "Nav": {
+      "accommodations": "إقامات",
+      "aboutUs": "معلومات عنا",
+      "contactUs": "اتصل بنا",
+      "dev": "تطوير"
+    },
+    "LogStatus": {
+      "profileImage": "صورة الملف الشخصي",
+      "profile": "الملف الشخصي",
+      "admin": "مسؤول",
+      "logout": "تسجيل الخروج",
+      "login": "تسجيل الدخول"
+    },
+    "LoginPage": {
+      "title": "تسجيل الدخول",
+      "emailPlaceholder": "البريد الإلكتروني",
+      "passwordPlaceholder": "كلمة المرور",
+      "loginButton": "تسجيل الدخول",
+      "loading": "جارٍ تسجيل الدخول...",
+      "noAccount": "ليس لديك حساب؟ ",
+      "registerLink": "سجل",
+      "errors": {
+        "generic": "حدث خطأ",
+        "invalidCredentials": "بريد إلكتروني أو كلمة مرور غير صحيحة"
+      },
+      "success": "تم تسجيل الدخول بنجاح!"
+    },
+    "RegisterPage": {
+      "title": "إنشاء حساب",
+      "emailLabel": "عنوان البريد الإلكتروني",
+      "emailPlaceholder": "أنت@مثال.كوم",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "8 أحرف على الأقل",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "كرر كلمة المرور",
+      "languageLabel": "اللغة المفضلة",
+      "registerButton": "تسجيل",
+      "alreadyHaveAccount": "هل لديك حساب بالفعل؟ ",
+      "loginLink": "تسجيل الدخول",
+      "errors": {
+        "invalidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح",
+        "passwordTooShort": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+        "passwordsDoNotMatch": "كلمات المرور غير متطابقة",
+        "registrationFailed": "فشل التسجيل",
+        "networkError": "خطأ في الشبكة. يرجى المحاولة مرة أخرى."
+      }
+    }
+  }

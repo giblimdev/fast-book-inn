@@ -1,0 +1,335 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Language{
+ id     String       @id @default(uuid())
+  lang   String
+  order     Int?    @default(0)
+}
+
+model User {
+  id              String    @id @default(uuid())
+  name            String?
+  email           String    @unique
+  password        String
+  phone           String?   @default("")
+  lang            String
+  image           String?
+  role            String    @default("USER") // USER, ADMIN, HOST
+  emailVerified   Boolean?  @default(false)
+  phoneVerified   Boolean?  @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  hotels          Hotel[]   // Relation avec les hôtels gérés par l'hôte
+
+  // Relations
+  bookings        Booking[]
+  payments        Payment[]
+  paymentMethods  PaymentMethod[]
+}
+
+model Hotel {
+  id                        String                     @id @default(uuid())
+  name                      String
+  userId                    String    
+  contactDetails            ContactDetails?            @relation(fields: [contactDetailsId], references: [id])
+  contactDetailsId          String?
+  address                   Address?                   @relation(fields: [addressId], references: [id])
+  addressId                 String?
+  images                    Image[]
+  destinations              Destination[]
+  accommodationTypes        AccommodationType[]
+  accommodationCharacteristics AccommodationCharacteristic[]
+  beddingConfigurations     BeddingConfiguration[]
+  services                  Service[]
+  accessibilityOptions      AccessibilityOption[]
+  roomFeatures              RoomFeature[]
+  parkingOptions            ParkingOption[]
+  bedTypes                  BedType[]
+  rooms                     Room[]
+  labels                    HotelLabel[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+
+  bookings                  Booking[]
+  // Informations bancaires pour recevoir les paiements
+  bankAccount               BankAccount?
+
+  User User[]
+}
+
+model Room {
+  id              String    @id @default(uuid())
+  hotel           Hotel     @relation(fields: [hotelId], references: [id])
+  hotelId         String
+  name            String
+  type            String    // single, double, suite, etc.
+  description     String?
+  pricePerNight   Float
+order     Int?    @default(0)
+  capacity        Int       @default(2)
+  isAvailable     Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relation avec les réservations
+  bookings        Booking[]
+  // Relation avec la disponibilité
+  availability    RoomAvailability[]
+}
+
+model RoomAvailability {
+  id         String   @id @default(uuid())
+  room       Room     @relation(fields: [roomId], references: [id])
+  roomId     String
+  date       DateTime
+  isAvailable Boolean  @default(true)
+  specialPrice Float?  // Prix spécial pour cette date (promotions, haute saison, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([roomId, date]) // Une chambre ne peut avoir qu'une disponibilité par date
+}
+
+model Booking {
+  id             String    @id @default(uuid())
+  user           User      @relation(fields: [userId], references: [id])
+  userId         String
+  hotel          Hotel     @relation(fields: [hotelId], references: [id])
+  hotelId        String
+  room           Room      @relation(fields: [roomId], references: [id])
+  roomId         String
+  checkIn        DateTime
+  checkOut       DateTime
+  totalPrice     Float
+  status         String    @default("pending") // pending, confirmed, cancelled, completed
+  reference      String    @unique @default(uuid())
+  guestCount     Int       @default(1)
+  specialRequests String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations avec les paiements
+  payments       Payment[]
+  // Relations avec les annulations
+  cancellation   Cancellation?
+}
+
+model Payment {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  booking          Booking   @relation(fields: [bookingId], references: [id])
+  bookingId        String
+  amount           Float
+  currency         String    @default("EUR")
+  status           String    @default("pending") // pending, completed, failed, refunded
+  paymentMethod    PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  paymentMethodId  String?
+  transactionId    String?   // ID externe du fournisseur de paiement
+  receiptUrl       String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // Pour les remboursements
+  refundId         String?
+  refundAmount     Float?
+  refundReason     String?
+  refundDate       DateTime?
+}
+
+model PaymentMethod {
+  id             String    @id @default(uuid())
+  user           User      @relation(fields: [userId], references: [id])
+  userId         String
+  type           String    // credit_card, paypal, stripe, etc.
+  order     Int?    @default(0)
+  provider       String
+  isDefault      Boolean   @default(false)
+  // Informations tokenisées pour les cartes
+  lastFourDigits String?
+  expiryMonth    Int?
+  expiryYear     Int?
+  cardholderName String?
+  cardBrand      String?   // visa, mastercard, etc.
+  // Identifiant externe auprès du fournisseur de paiement
+  externalId     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // Relations
+  payments       Payment[]
+}
+
+model BankAccount {
+  id              String    @id @default(uuid())
+  hotelId         String    @unique
+  hotel           Hotel     @relation(fields: [hotelId], references: [id])
+  accountHolder   String
+  accountNumber   String
+  bankName        String
+  bankCode        String?
+  iban            String?
+  swift           String?
+  currency        String    @default("EUR")
+  isVerified      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Cancellation {
+  id              String    @id @default(uuid())
+  booking         Booking   @relation(fields: [bookingId], references: [id])
+  bookingId       String    @unique
+  reason          String
+  initiatedBy     String    // user, hotel, system
+  refundAmount    Float?
+  cancelledAt     DateTime  @default(now())
+  cancellationFee Float     @default(0)
+  status          String    @default("pending") // pending, processed, denied
+}
+
+model HotelLabel {
+  id            String   @id @default(uuid())
+  hotel         Hotel    @relation(fields: [hotelId], references: [id])
+  hotelId       String
+  createdat     DateTime @default(now())
+  alertStatus   Boolean  @default(false)
+  validiStatus  Boolean  @default(false)
+  label         Label    @relation(fields: [labelId], references: [id])
+  labelId       String
+
+  @@unique([hotelId, labelId]) // Un hôtel ne peut pas avoir le même label plusieurs fois
+}
+
+model Label {
+  id     String       @id @default(uuid())
+  name   String
+  order     Int?    @default(0)
+  hotels HotelLabel[] // Relation via la table de jonction
+}
+
+model ContactDetails {
+  id        String   @id @default(uuid())
+  phone     String?
+  email     String?
+  website   String?
+  hotelId   String?
+  Hotel     Hotel[]
+}
+
+model Address {
+  id                      String   @id @default(uuid())
+  number                  String?
+  addressLine1            String
+  addressLine2            String?
+  zipCode                 String
+  district                String?
+  city                    String
+  stateProvinceRegion     String?
+  country                 String
+  latitude                Float?
+  longitude               Float?
+  hotelId                 String?
+  Hotel                   Hotel[]
+}
+
+model Image {
+  id        String  @id @default(uuid())
+  url       String
+  isMain    Boolean  @default(false)
+  hotelId   String
+  order     Int?    @default(0)
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+}
+
+model Destination {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model AccommodationType { 
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model AccommodationCharacteristic {
+  id        String  @id @default(uuid()) 
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model BeddingConfiguration {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model Service {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model AccessibilityOption {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model RoomFeature {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model ParkingOption {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+model BedType {
+  id        String  @id @default(uuid())
+  name      String
+  order     Int?    @default(0)
+  hotels    Hotel[]
+}
+
+// Table pour les taxes et frais
+model Tax {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  rate        Float
+  isPercentage Boolean @default(true)
+  isActive    Boolean @default(true)
+  country     String?
+  region      String?
+}
+
+// Pour stocker les logs de transactions de paiement
+model PaymentLog {
+  id           String   @id @default(uuid())
+  paymentId    String?
+  action       String
+  description  String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+}

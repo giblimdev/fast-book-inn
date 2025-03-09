@@ -1,0 +1,91 @@
+{
+  "HomePage": {
+    "title": "Bonjour le monde !",
+    "about": "Aller à la page à propos"
+  },
+  "Nav": {
+    "accommodations": "Hébergements",
+    "aboutUs": "À propos de nous",
+    "contactUs": "Nous contacter",
+    "Labeling": "Labeles",
+    "dev": "Développement",
+    "admin": "Admin"
+  },
+  "LogStatus": {
+    "profileImage": "Image de profil",
+    "profile": "Profil",
+    "admin": "Admin",
+    "logout": "Déconnexion",
+    "login": "Connexion"
+  },
+  "LoginPage": {
+    "title": "Connexion",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Mot de passe",
+    "loginButton": "Connexion",
+    "loading": "Connexion en cours...",
+    "noAccount": "Pas de compte ? ",
+    "registerLink": "S'inscrire",
+    "errors": {
+      "generic": "Une erreur est survenue",
+      "invalidCredentials": "Email ou mot de passe invalide"
+    },
+    "success": "Connexion réussie !"
+  },
+  "RegisterPage": {
+    "title": "Créer un compte",
+    "emailLabel": "Adresse email",
+    "emailPlaceholder": "vous@exemple.com",
+    "passwordLabel": "Mot de passe",
+    "passwordPlaceholder": "Au moins 8 caractères",
+    "confirmPasswordLabel": "Confirmer le mot de passe",
+    "confirmPasswordPlaceholder": "Répétez votre mot de passe",
+    "languageLabel": "Langue préférée",
+    "registerButton": "S'inscrire",
+    "alreadyHaveAccount": "Déjà un compte ? ",
+    "loginLink": "Se connecter",
+    "errors": {
+      "invalidEmail": "Veuillez entrer une adresse email valide",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+      "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+      "registrationFailed": "L'inscription a échoué",
+      "networkError": "Erreur réseau. Veuillez réessayer."
+    }
+  },
+  "Home": {
+    "heroSlogan": "Explorez le monde, à votre façon",
+    "heroSubSlogan": "Trouvez le séjour parfait pour votre prochaine aventure",
+    "accommodationTypes": "Types d'hébergement",
+    "hotelsDescription": "Hôtels de luxe avec des équipements de classe mondiale.",
+    "apartmentsDescription": "Appartements confortables pour une expérience comme à la maison.",
+    "villasDescription": "Villas privées pour une escapade isolée.",
+    "popularDestinations": "Destinations populaires",
+    "parisDescription": "La ville de l'amour, de l'art et de la culture.",
+    "newYorkDescription": "La métropole animée qui ne dort jamais.",
+    "tokyoDescription": "Un mélange de tradition et d'innovation futuriste."
+  },
+  "HeroForm": {
+    "destinationLabel": "Où allez-vous ?",
+    "destinationPlaceholder": "Ex : Paris, New York...",
+    "datesLabel": "Dates",
+    "datesPlaceholder": "Ajoutez vos dates",
+    "voyageursLabel": "Voyageurs",
+    "voyageursPlaceholder": "Nombre de voyageurs",
+    "searchButton": "Rechercher"
+  },
+  "Contact": {
+    "title": "Nous contacter",
+    "info": "Nos informations",
+    "address": "Adresse",
+    "email": "Email",
+    "phone": "Téléphone",
+    "hours": "Horaires d'ouverture",
+    "nameLabel": "Nom",
+    "emailLabel": "Email",
+    "subjectLabel": "Sujet",
+    "messageLabel": "Message",
+    "newMessage": "Envoyer un nouveau message",
+    "sending": "Envoi...",
+    "send": "Envoyer le message"
+  }
+}
