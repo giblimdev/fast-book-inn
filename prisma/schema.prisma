@@ -1,343 +1,1399 @@
+// Base Configuration
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite" // Change to PostgreSQL with PostGIS for geospatial searches
   url      = env("DATABASE_URL")
 }
 
-model Language{
- id     String       @id @default(uuid())
-  lang   String
-  order     Int?    @default(0)
+// =============================================================================
+// UTILITY MODELS
+// =============================================================================
+
+/**
+ * Stores available currencies for the application.
+ * Used for pricing rooms, payments, and promotions.
+ */
+model Currency {
+  id            String         @id @default(uuid())
+  code          String         @unique // ISO 4217 (e.g., "EUR", "USD")
+  name          String // Full name (e.g., "Euro", "US Dollar")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  bookings      Booking[]
+  payments      Payment[]
+  bookingExtras BookingExtra[]
+  promotions    Promotion[]
+  roomTypes     RoomType[]
+  cancellations Cancellation[]
+  extras        Extra[]
+
+  @@index([code])
 }
 
-model User {
-  id              String    @id @default(uuid())
-  name            String?
-  email           String    @unique
-  password        String
-  phone           String   @default("")
-  lang            String
-  image           String?
-  role            String    @default("USER") // USER, ADMIN, HOST
-  emailVerified   Boolean  @default(false)
-  phoneVerified   Boolean  @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  hotels          Hotel[]   // Relation avec les hôtels gérés par l'hôte
+/**
+ * Represents available languages for internationalization.
+ * Used for user preferences and hotel communication.
+ */
+model Language {
+  id         String      @id @default(uuid())
+  code       String      @unique // ISO 639-1 (e.g., "en", "fr")
+  name       String // Full name (e.g., "English", "French")
+  order      Int         @default(0) // Display order
+  users      User[] // Users with this preferred language
+  hotelUsers HotelUser[] // Hotel users with this language
 
-  // Relations
-  bookings        Booking[]
-  payments        Payment[]
-  paymentMethods  PaymentMethod[]
+  @@index([code])
 }
 
-model Hotel {
-  id                        String                     @id @default(uuid())
-  name                      String
-  userId                    String    
-  contactDetails            ContactDetails?            @relation(fields: [contactDetailsId], references: [id])
-  contactDetailsId          String?
-  address                   Address?                   @relation(fields: [addressId], references: [id])
-  addressId                 String?
-  images                    Image[]
-  destinations              Destination[]
-  accommodationTypes        AccommodationType[]
-  accommodationCharacteristics AccommodationCharacteristic[]
-  beddingConfigurations     BeddingConfiguration[]
-  services                  Service[]
-  accessibilityOptions      AccessibilityOption[]
-  roomFeatures              RoomFeature[]
-  parkingOptions            ParkingOption[]
-  bedTypes                  BedType[]
-  rooms                     Room[]
-  labels                    HotelLabel[]
-  mealPlans                 MealPlans[]
-  createdAt                 DateTime                   @default(now())
-  updatedAt                 DateTime                   @updatedAt
-
-  bookings                  Booking[]
-  // Informations bancaires pour recevoir les paiements
-  bankAccount               BankAccount?
-
-  User User[]
-}
-
-model MealPlans {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int   @default(0)
-  hotels    Hotel[]
-}
-
-model Room {
-  id              String    @id @default(uuid())
-  hotel           Hotel     @relation(fields: [hotelId], references: [id])
-  hotelId         String
-  name            String
-  type            String    // single, double, suite, etc.
-  description     String?
-  pricePerNight   Float
-order     Int    @default(0)
-  capacity        Int       @default(2)
-  isAvailable     Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Relation avec les réservations
-  bookings        Booking[]
-  // Relation avec la disponibilité
-  availability    RoomAvailability[]
-}
-
-model RoomAvailability {
-  id         String   @id @default(uuid())
-  room       Room     @relation(fields: [roomId], references: [id])
-  roomId     String
-  date       DateTime
-  isAvailable Boolean  @default(true)
-  specialPrice Float?  // Prix spécial pour cette date (promotions, haute saison, etc.)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([roomId, date]) // Une chambre ne peut avoir qu'une disponibilité par date
-}
-
-model Booking {
-  id             String    @id @default(uuid())
-  user           User      @relation(fields: [userId], references: [id])
-  userId         String
-  hotel          Hotel     @relation(fields: [hotelId], references: [id])
-  hotelId        String
-  room           Room      @relation(fields: [roomId], references: [id])
-  roomId         String
-  checkIn        DateTime
-  checkOut       DateTime
-  totalPrice     Float
-  status         String    @default("pending") // pending, confirmed, cancelled, completed
-  reference      String    @unique @default(uuid())
-  guestCount     Int       @default(1)
-  specialRequests String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relations avec les paiements
-  payments       Payment[]
-  // Relations avec les annulations
-  cancellation   Cancellation?
-}
-
-model Payment {
-  id               String    @id @default(uuid())
-  user             User      @relation(fields: [userId], references: [id])
-  userId           String
-  booking          Booking   @relation(fields: [bookingId], references: [id])
-  bookingId        String
-  amount           Float
-  currency         String    @default("EUR")
-  status           String    @default("pending") // pending, completed, failed, refunded
-  paymentMethod    PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
-  paymentMethodId  String?
-  transactionId    String?   // ID externe du fournisseur de paiement
-  receiptUrl       String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
-  // Pour les remboursements
-  refundId         String?
-  refundAmount     Float?
-  refundReason     String?
-  refundDate       DateTime?
-}
-
-model PaymentMethod {
-  id             String    @id @default(uuid())
-  user           User      @relation(fields: [userId], references: [id])
-  userId         String
-  type           String    // credit_card, paypal, stripe, etc.
-  order     Int?    @default(0)
-  provider       String
-  isDefault      Boolean   @default(false)
-  // Informations tokenisées pour les cartes
-  lastFourDigits String?
-  expiryMonth    Int?
-  expiryYear     Int?
-  cardholderName String?
-  cardBrand      String?   // visa, mastercard, etc.
-  // Identifiant externe auprès du fournisseur de paiement
-  externalId     String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
-  // Relations
-  payments       Payment[]
-}
-
-model BankAccount {
-  id              String    @id @default(uuid())
-  hotelId         String    @unique
-  hotel           Hotel     @relation(fields: [hotelId], references: [id])
-  accountHolder   String
-  accountNumber   String
-  bankName        String
-  bankCode        String?
-  iban            String?
-  swift           String?
-  currency        String    @default("EUR")
-  isVerified      Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
-
-model Cancellation {
-  id              String    @id @default(uuid())
-  booking         Booking   @relation(fields: [bookingId], references: [id])
-  bookingId       String    @unique
-  reason          String
-  initiatedBy     String    // user, hotel, system
-  refundAmount    Float?
-  cancelledAt     DateTime  @default(now())
-  cancellationFee Float     @default(0)
-  status          String    @default("pending") // pending, processed, denied
-}
-
-model HotelLabel {
-  id            String   @id @default(uuid())
-  hotel         Hotel    @relation(fields: [hotelId], references: [id])
-  hotelId       String
-  createdat     DateTime @default(now())
-  alertStatus   Boolean  @default(false)
-  validiStatus  Boolean  @default(false)
-  label         Label    @relation(fields: [labelId], references: [id])
-  labelId       String
-
-  @@unique([hotelId, labelId]) // Un hôtel ne peut pas avoir le même label plusieurs fois
-}
-
-model Label {
-  id     String       @id @default(uuid())
-  name   String
-  order     Int    @default(0)
-  hotels HotelLabel[] // Relation via la table de jonction
-}
-
-model ContactDetails {
-  id        String   @id @default(uuid())
-  phone     String?
-  email     String?
-  website   String?
-  hotelId   String?
-  Hotel     Hotel[]
-}
-
-model Address {
-  id                      String   @id @default(uuid())
-  number                  String?
-  addressLine1            String
-  addressLine2            String?
-  zipCode                 String
-  district                String?
-  city                    String
-  stateProvinceRegion     String?
-  country                 String
-  latitude                Float?
-  longitude               Float?
-  hotelId                 String?
-  Hotel                   Hotel[]
-}
-
+/**
+ * Centralized image storage for hotels, room types, rooms, and points of interest.
+ * Supports accessibility and ordering for display.
+ */
 model Image {
-  id        String  @id @default(uuid())
-  url       String
-  isMain    Boolean  @default(false)
+  id                    String                 @id @default(uuid())
+  url                   String // URL or path to the image
+  altText               String? // Text for accessibility/SEO
+  order                 Int                    @default(0) // Display order
+  isHero                Boolean                @default(false) // Primary image
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  hotelImages           HotelImage[] // Hotel images
+  roomTypeImages        RoomTypeImage[] // Room type images
+  roomImages            RoomImage[] // Room images
+  pointOfInterestImages PointOfInterestImage[] // Point of interest images
+
+  @@index([order])
+}
+
+// Junction tables for images
+model HotelImage {
   hotelId   String
-  order     Int    @default(0)
+  imageId   String
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  image     Image    @relation(fields: [imageId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([hotelId, imageId])
+  @@index([hotelId, imageId])
 }
 
+model RoomTypeImage {
+  roomTypeId String
+  imageId    String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  image      Image    @relation(fields: [imageId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@id([roomTypeId, imageId])
+  @@index([roomTypeId, imageId])
+}
+
+model RoomImage {
+  roomId    String
+  imageId   String
+  room      Room     @relation(fields: [roomId], references: [id])
+  image     Image    @relation(fields: [imageId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([roomId, imageId])
+  @@index([roomId, imageId])
+}
+
+model PointOfInterestImage {
+  pointOfInterestId String
+  imageId           String
+  pointOfInterest   PointOfInterest @relation(fields: [pointOfInterestId], references: [id])
+  image             Image           @relation(fields: [imageId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@id([pointOfInterestId, imageId])
+  @@index([pointOfInterestId, imageId])
+}
+
+// =============================================================================
+// AUTHENTICATION AND USER MANAGEMENT
+// =============================================================================
+
+/**
+ * Core user account for authentication.
+ * Represents a user in the system, linked to a hotel-specific profile.
+ */
+model User {
+  id                  String         @id @default(uuid())
+  name                String // Full name
+  email               String         @unique // Unique email
+  emailVerified       Boolean        @default(false) // Email verified?
+  preferredLanguageId String? // Preferred language
+  preferredLanguage   Language?      @relation(fields: [preferredLanguageId], references: [id])
+  image               String? // Avatar URL
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  sessions            Session[] // Active sessions
+  accounts            Account[] // Authentication accounts
+  verifications       Verification[] // Email/phone verifications
+  hotelUsers          HotelUser[] // Hotel profiles
+
+  @@index([email])
+}
+
+/**
+ * Active user sessions for authentication.
+ * Tracks user logins across devices.
+ */
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique // Session token
+  expiresAt DateTime // Expiration date
+  ipAddress String? // IP address for tracking
+  userAgent String? // User agent for tracking
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, token])
+}
+
+/**
+ * Authentication accounts (email/password, OAuth).
+ * Supports multiple authentication providers.
+ */
+model Account {
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id])
+  accountId             String // Account ID with provider
+  providerId            String // "email", "google", etc.
+  accessToken           String? // OAuth access token
+  refreshToken          String? // Refresh token
+  accessTokenExpiresAt  DateTime? // Access token expiration
+  refreshTokenExpiresAt DateTime? // Refresh token expiration
+  scope                 String? // OAuth scope
+  idToken               String? // OAuth ID token
+  password              String? // Hashed password (for email)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId, providerId])
+}
+
+/**
+ * Verification requests for email or phone.
+ * Used to confirm user identity.
+ */
+model Verification {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  identifier String // "email", "phone"
+  value      String // Value to verify (e.g., email or number)
+  expiresAt  DateTime // Expiration date
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, identifier])
+}
+
+/**
+ * Hotel-specific user profile.
+ * Extends User with hotel-specific roles and details.
+ */
+model HotelUser {
+  id                   String                @id @default(uuid())
+  userId               String                @unique
+  user                 User                  @relation(fields: [userId], references: [id])
+  firstName            String? // First name
+  lastName             String? // Last name
+  phone                String? // Primary phone number
+  phoneVerified        Boolean               @default(false) // Phone verified?
+  languageId           String // Preferred language
+  language             Language              @relation(fields: [languageId], references: [id])
+  avatar               String? // Avatar URL
+  role                 HotelRole             @default(GUEST) // Role (GUEST, OWNER, etc.)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  ownedHotels          Hotel[]               @relation("Owner") // Owned hotels
+  bookings             Booking[] // Bookings made
+  paymentMethods       PaymentMethod[] // Payment methods
+  resetTokens          PasswordResetToken[] // Password reset tokens
+  identityVerification IdentityVerification? // Identity verification
+  reviews              Review[] // Reviews written
+  loyaltyProgram       LoyaltyProgram? // Loyalty program
+  notifications        Notification[] // Notifications received
+  staffAssignments     HotelStaff[] // Staff assignments
+  bookingLogs          BookingLog[] // Booking modifications
+  addresses            Address[]             @relation("UserAddress") // User addresses
+  reviewResponses      ReviewResponse[] // Responses to reviews
+
+  @@index([userId, role])
+}
+
+enum HotelRole {
+  GUEST
+  OWNER
+  MANAGER
+  STAFF
+  ADMIN
+  SUPPORT
+}
+
+/**
+ * Staff assignments with detailed permissions.
+ * Defines which hotels a user manages and their allowed actions.
+ */
+model HotelStaff {
+  id          String    @id @default(uuid())
+  hotelUserId String
+  hotelUser   HotelUser @relation(fields: [hotelUserId], references: [id])
+  hotelId     String
+  hotel       Hotel     @relation(fields: [hotelId], references: [id])
+  role        HotelRole // MANAGER, STAFF
+  permissions Json // Allowed actions (e.g., ["CREATE_ROOM", "APPROVE_BOOKING"])
+  assignedAt  DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([hotelUserId, hotelId])
+  @@index([hotelUserId, hotelId])
+  @@index([hotelId, role])
+}
+
+// =============================================================================
+// HOTEL AND PROPERTIES
+// =============================================================================
+
+/**
+ * Hotel entity.
+ * Represents a hotel with its details, amenities, and relations.
+ */
+model Hotel {
+  id                   String                   @id @default(uuid())
+  name                 String
+  description          String?
+  stars                Int                      @default(3)
+  status               HotelStatus              @default(ACTIVE)
+  ownerId              String
+  owner                HotelUser                @relation("Owner", fields: [ownerId], references: [id])
+  checkInTime          String                   @default("14:00")
+  checkOutTime         String                   @default("12:00")
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  contactDetails       ContactDetails?
+  address              Address?                 @relation("HotelAddress") // One-to-one relation
+  bankAccount          BankAccount?
+  stats                HotelStats?
+  images               HotelImage[]
+  propertyLabels       HotelPropertyLabel[]
+  destinations         HotelDestination[]
+  pointsOfInterest     HotelPointOfInterest[]
+  amenities            HotelAmenity[]
+  facilities           HotelFacility[]
+  accessibilityOptions HotelAccessibility[]
+  parkingOptions       HotelParking[]
+  roomTypes            RoomType[]
+  accommodationTypes   HotelAccommodationType[]
+  promotions           Promotion[]
+  extras               Extra[]
+  bookings             Booking[]
+  reviews              Review[]
+  staff                HotelStaff[]
+  search               HotelSearch? // Search optimization
+  phones               HotelPhone[] // Phone numbers
+  reviewResponses      ReviewResponse[] // Responses to reviews
+
+  @@index([ownerId, status])
+  @@index([status, name])
+}
+
+enum HotelStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+/**
+ * Hotel contact details (1:1).
+ * Supports multiple emails and links to phone numbers.
+ */
+model ContactDetails {
+  id        String       @id @default(uuid())
+  hotelId   String       @unique // Unique for 1:1 relation
+  hotel     Hotel        @relation(fields: [hotelId], references: [id])
+  emails    Json // Array of emails (e.g., ["contact@hotel.com", "info@hotel.com"])
+  website   String? // Website
+  phones    HotelPhone[] // Phone numbers
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([hotelId])
+}
+
+/**
+ * Phone numbers for hotels.
+ * Stores numbers in E.164 format with country code.
+ */
+model HotelPhone {
+  id               String          @id @default(uuid())
+  hotelId          String
+  hotel            Hotel           @relation(fields: [hotelId], references: [id])
+  contactDetailsId String? // Optional link to ContactDetails
+  contactDetails   ContactDetails? @relation(fields: [contactDetailsId], references: [id])
+  number           String // E.164 format (e.g., "+33123456789")
+  countryCode      String // ISO 3166-1 alpha-2 (e.g., "FR")
+  isPrimary        Boolean         @default(false) // Primary number?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([hotelId, countryCode])
+  @@index([hotelId, isPrimary])
+}
+
+/**
+ * Generic address for hotels, users, or billing.
+ * Supports worldwide addresses with geospatial capabilities.
+ */
+model Address {
+  id             String          @id @default(uuid())
+  hotelId        String?         @unique // Linked to a hotel (optional, one-to-one)
+  hotel          Hotel?          @relation("HotelAddress", fields: [hotelId], references: [id])
+  hotelUserId    String? // Linked to a user (optional)
+  hotelUser      HotelUser?      @relation("UserAddress", fields: [hotelUserId], references: [id])
+  street         String // Street
+  streetNumber   String? // Street number
+  addressLine    String? // Additional address line
+  city           String // City
+  zipCode        String // Postal code
+  country        String // Country name
+  countryCode    String? // ISO 3166-1 alpha-2 (e.g., "FR", "US")
+  region         String? // Region or state
+  latitude       Float? // Latitude for geolocation
+  longitude      Float? // Longitude for geolocation
+  isBilling      Boolean         @default(false) // Billing address?
+  isDefault      Boolean         @default(false) // Default address for user?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  paymentMethods PaymentMethod[] @relation("BillingAddress") // Billing addresses
+
+  @@index([hotelId])
+  @@index([hotelUserId, isBilling])
+  @@index([hotelUserId, isDefault])
+  @@index([city, country])
+  @@index([countryCode])
+  @@index([latitude, longitude])
+}
+
+/**
+ * Hotel bank account for payments (1:1).
+ * Used for receiving payments from bookings.
+ */
+model BankAccount {
+  id            String   @id @default(uuid())
+  hotelId       String   @unique
+  hotel         Hotel    @relation(fields: [hotelId], references: [id])
+  accountNumber String // Account number
+  bankName      String // Bank name
+  swiftCode     String? // SWIFT code
+  iban          String? // IBAN
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([hotelId])
+}
+
+/**
+ * Hotel statistics (1:1).
+ * Tracks performance metrics.
+ */
+model HotelStats {
+  id            String   @id @default(uuid())
+  hotelId       String   @unique
+  hotel         Hotel    @relation(fields: [hotelId], references: [id])
+  totalBookings Int      @default(0) // Total bookings
+  totalRevenue  Float    @default(0) // Total revenue
+  occupancyRate Float    @default(0) // Occupancy rate
+  lastUpdated   DateTime @updatedAt
+
+  @@index([hotelId])
+}
+
+// =============================================================================
+// SHARED FEATURES
+// =============================================================================
+
+/**
+ * Amenities available for hotels and room types.
+ * E.g., "Wi-Fi", "Air Conditioning".
+ */
+model Amenity {
+  id                 String               @id @default(uuid())
+  name               String               @unique // Unique name
+  description        String? // Description
+  icon               String? // Icon for display
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  hotelAmenities     HotelAmenity[] // Hotel amenities
+  roomTypeAmenities  RoomTypeAmenity[] // Room type amenities
+  HotelSearchAmenity HotelSearchAmenity[]
+
+  @@index([name])
+}
+
+model HotelAmenity {
+  hotelId   String
+  amenityId String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  amenity   Amenity  @relation(fields: [amenityId], references: [id])
+  isActive  Boolean  @default(true) // Active?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([hotelId, amenityId])
+  @@index([hotelId, amenityId, isActive])
+}
+
+/**
+ * Facilities available for hotels.
+ * E.g., "Pool", "Gym".
+ */
+model Facility {
+  id                  String                @id @default(uuid())
+  name                String                @unique
+  description         String?
+  icon                String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  hotelFacilities     HotelFacility[]
+  HotelSearchFacility HotelSearchFacility[]
+
+  @@index([name])
+}
+
+model HotelFacility {
+  hotelId    String
+  facilityId String
+  hotel      Hotel    @relation(fields: [hotelId], references: [id])
+  facility   Facility @relation(fields: [facilityId], references: [id])
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@id([hotelId, facilityId])
+  @@index([hotelId, facilityId, isActive])
+}
+
+/**
+ * Property labels for hotels.
+ * E.g., "Eco-friendly", "Luxury".
+ */
+model PropertyLabel {
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  description         String?
+  logo                String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  hotelPropertyLabels HotelPropertyLabel[]
+
+  @@index([name])
+}
+
+model HotelPropertyLabel {
+  hotelId         String
+  propertyLabelId String
+  hotel           Hotel         @relation(fields: [hotelId], references: [id])
+  propertyLabel   PropertyLabel @relation(fields: [propertyLabelId], references: [id])
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@id([hotelId, propertyLabelId])
+  @@index([hotelId, propertyLabelId, isActive])
+}
+
+/**
+ * Destinations associated with hotels.
+ * E.g., "Paris", "New York".
+ */
 model Destination {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int   @default(0)
-  hotels    Hotel[]
+  id                String             @id @default(uuid())
+  name              String             @unique
+  description       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  hotelDestinations HotelDestination[]
+
+  @@index([name])
 }
 
-model AccommodationType { 
-  id        String  @id @default(uuid())
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
+model HotelDestination {
+  hotelId       String
+  destinationId String
+  hotel         Hotel       @relation(fields: [hotelId], references: [id])
+  destination   Destination @relation(fields: [destinationId], references: [id])
+  isPrimary     Boolean     @default(false) // Primary destination?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@id([hotelId, destinationId])
+  @@index([destinationId, hotelId])
 }
 
-model AccommodationCharacteristic {
-  id        String  @id @default(uuid()) 
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
+/**
+ * Points of interest near hotels.
+ * E.g., "Eiffel Tower", "Central Park".
+ */
+model PointOfInterest {
+  id                    String                 @id @default(uuid())
+  name                  String
+  description           String?
+  latitude              Float?
+  longitude             Float?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  hotelPointsOfInterest HotelPointOfInterest[]
+  images                PointOfInterestImage[]
+
+  @@index([name])
+  @@index([latitude, longitude])
 }
 
-model BeddingConfiguration {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
+model HotelPointOfInterest {
+  hotelId           String
+  pointOfInterestId String
+  hotel             Hotel           @relation(fields: [hotelId], references: [id])
+  pointOfInterest   PointOfInterest @relation(fields: [pointOfInterestId], references: [id])
+  distance          Float? // Distance in km
+  distanceUnit      String? // Unit (e.g., "km", "miles")
+  travelTime        String? // Travel time
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@id([hotelId, pointOfInterestId])
+  @@index([hotelId, pointOfInterestId, isActive])
 }
 
-model Service {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
-}
-
-model AccessibilityOption {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
-}
-
-model RoomFeature {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
-}
-
+/**
+ * Parking options for hotels.
+ * E.g., "Free Parking", "Valet Parking".
+ */
 model ParkingOption {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
-}
-
-model BedType {
-  id        String  @id @default(uuid())
-  name      String
-  order     Int    @default(0)
-  hotels    Hotel[]
-}
-
-// Table pour les taxes et frais
-model Tax {
-  id          String  @id @default(uuid())
-  name        String
-  description String
-  rate        Float
-  isPercentage Boolean @default(true)
-  isActive    Boolean @default(true)
-  country     String?
-  region      String?
-}
-
-// Pour stocker les logs de transactions de paiement
-model PaymentLog {
-  id           String   @id @default(uuid())
-  paymentId    String?
-  action       String
+  id           String         @id @default(uuid())
+  name         String         @unique
   description  String?
-  metadata     Json?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  hotelParking HotelParking[]
+
+  @@index([name])
+}
+
+model HotelParking {
+  hotelId         String
+  parkingOptionId String
+  hotel           Hotel         @relation(fields: [hotelId], references: [id])
+  parkingOption   ParkingOption @relation(fields: [parkingOptionId], references: [id])
+  details         String? // Additional details
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@id([hotelId, parkingOptionId])
+  @@index([hotelId, parkingOptionId, isActive])
+}
+
+/**
+ * Accessibility options for hotels.
+ * E.g., "Wheelchair Accessible", "Braille Signage".
+ */
+model AccessibilityOption {
+  id                 String               @id @default(uuid())
+  name               String               @unique
+  description        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  hotelAccessibility HotelAccessibility[]
+
+  @@index([name])
+}
+
+model HotelAccessibility {
+  hotelId               String
+  accessibilityOptionId String
+  hotel                 Hotel               @relation(fields: [hotelId], references: [id])
+  accessibilityOption   AccessibilityOption @relation(fields: [accessibilityOptionId], references: [id])
+  details               String?
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@id([hotelId, accessibilityOptionId])
+  @@index([hotelId, accessibilityOptionId, isActive])
+}
+
+/**
+ * Accommodation types for hotels.
+ * E.g., "Hotel", "Resort", "Bed & Breakfast".
+ */
+model AccommodationType {
+  id                      String                   @id @default(uuid())
+  name                    String                   @unique
+  description             String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  hotelAccommodationTypes HotelAccommodationType[]
+
+  @@index([name])
+}
+
+model HotelAccommodationType {
+  hotelId             String
+  accommodationTypeId String
+  hotel               Hotel             @relation(fields: [hotelId], references: [id])
+  accommodationType   AccommodationType @relation(fields: [accommodationTypeId], references: [id])
+  isPrimary           Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@id([hotelId, accommodationTypeId])
+  @@index([accommodationTypeId, hotelId])
+}
+
+// =============================================================================
+// ROOMS AND AVAILABILITY
+// =============================================================================
+
+/**
+ * Room type definition.
+ * Defines a category of rooms (e.g., "Standard Double").
+ */
+model RoomType {
+  id                 String              @id @default(uuid())
+  hotelId            String
+  hotel              Hotel               @relation(fields: [hotelId], references: [id])
+  name               String // Room type name
+  description        String? // Description
+  basePrice          Float // Base price per night
+  currencyId         String // Currency
+  currency           Currency            @relation(fields: [currencyId], references: [id])
+  capacity           Int                 @default(2) // Total capacity
+  maxAdults          Int                 @default(2) // Max adults
+  maxChildren        Int                 @default(0) // Max children
+  size               Int? // Size in square units
+  sizeUnit           String? // Unit (e.g., "sqm", "sqft")
+  isActive           Boolean             @default(true) // Active?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  rooms              Room[] // Physical rooms
+  images             RoomTypeImage[] // Images
+  availability       RoomAvailability[] // Availabilities
+  pricingRules       DynamicPricing[] // Dynamic pricing
+  amenities          RoomTypeAmenity[] // Amenities
+  roomBookings       RoomBooking[] // Bookings
+  promotionRoomTypes PromotionRoomType[] // Applicable promotions
+
+  @@index([hotelId, isActive, basePrice])
+  @@index([hotelId, capacity])
+}
+
+model RoomTypeAmenity {
+  roomTypeId String
+  amenityId  String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  amenity    Amenity  @relation(fields: [amenityId], references: [id])
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@id([roomTypeId, amenityId])
+  @@index([roomTypeId, amenityId, isActive])
+}
+
+/**
+ * Physical room instance.
+ * Represents an individual room (e.g., Room 101).
+ */
+model Room {
+  id         String      @id @default(uuid())
+  roomTypeId String
+  roomType   RoomType    @relation(fields: [roomTypeId], references: [id])
+  number     String // Room number
+  floor      Int? // Floor
+  status     RoomStatus  @default(AVAILABLE) // Status
+  notes      String? // Internal notes
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  images     RoomImage[] // Specific images
+
+  @@unique([roomTypeId, number])
+  @@index([roomTypeId, status])
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+  MAINTENANCE
+  OUT_OF_ORDER
+}
+
+/**
+ * Room availability with overbooking protection.
+ * Tracks availability for each room type by date.
+ */
+model RoomAvailability {
+  id          String    @id @default(uuid())
+  roomTypeId  String
+  roomType    RoomType  @relation(fields: [roomTypeId], references: [id])
+  date        DateTime // Affected date
+  totalRooms  Int // Total rooms
+  available   Int // Available rooms
+  booked      Int       @default(0) // Booked rooms
+  overbooked  Int       @default(0) // Overbooked rooms
+  isClosed    Boolean   @default(false) // Closed for booking?
+  minStay     Int? // Minimum stay
+  maxStay     Int? // Maximum stay
+  lockedUntil DateTime? // Temporary lock
+  lockedBy    String? // Locking user or booking
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([roomTypeId, date])
+  @@index([date, available, isClosed])
+  @@index([roomTypeId, date])
+}
+
+/**
+ * Dynamic pricing rules.
+ * Adjusts prices based on date or demand.
+ */
+model DynamicPricing {
+  id          String     @id @default(uuid())
+  roomTypeId  String
+  roomType    RoomType   @relation(fields: [roomTypeId], references: [id])
+  date        DateTime // Pricing date
+  price       Float // Price for this date
+  minStay     Int? // Minimum stay
+  maxStay     Int? // Maximum stay
+  isActive    Boolean    @default(true)
+  promotionId String? // Associated promotion
+  promotion   Promotion? @relation(fields: [promotionId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([roomTypeId, date])
+  @@index([date, isActive])
+  @@index([roomTypeId, date, isActive])
+}
+
+// =============================================================================
+// BOOKINGS AND TRANSACTIONS
+// =============================================================================
+
+/**
+ * Main booking entity.
+ * Represents a reservation made by a user.
+ */
+model Booking {
+  id              String           @id @default(uuid())
+  reference       String           @unique @default(uuid()) // Unique reference
+  hotelUserId     String // Booking user
+  hotelUser       HotelUser        @relation(fields: [hotelUserId], references: [id])
+  hotelId         String // Booked hotel
+  hotel           Hotel            @relation(fields: [hotelId], references: [id])
+  status          BookingStatus    @default(PENDING) // Status
+  checkIn         DateTime // Check-in date
+  checkOut        DateTime // Check-out date
+  nights          Int // Number of nights
+  adults          Int              @default(1) // Number of adults
+  children        Int              @default(0) // Number of children
+  guestDetails    Json? // Guest details (e.g., [{"name": "John Doe", "age": 30}])
+  specialRequests String? // Special requests
+  notes           String? // Internal notes
+  source          BookingSource    @default(WEB) // Source (WEB, PHONE, etc.)
+  ipAddress       String? // IP address for tracking
+  userAgent       String? // User agent for tracking
+  totalAmount     Float            @default(0) // Total amount
+  currencyId      String // Currency
+  currency        Currency         @relation(fields: [currencyId], references: [id])
+  paymentDueDate  DateTime? // Payment due date
+  promotionId     String? // Applied promotion
+  promotion       Promotion?       @relation(fields: [promotionId], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  roomBookings    RoomBooking[] // Booked room types
+  payments        Payment[] // Payments
+  cancellation    Cancellation? // Cancellation
+  review          Review? // Review
+  bookingExtras   BookingExtra[] // Extras
+  bookingRequests BookingRequest[] // Structured requests
+  notifications   Notification[] // Notifications
+  bookingLogs     BookingLog[] // Modifications
+  XpPoint         XpPoint[]
+
+  @@index([hotelUserId, status])
+  @@index([hotelId, status])
+  @@index([hotelId, checkIn, checkOut])
+  @@index([reference])
+  @@index([paymentDueDate])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  MODIFIED
+  CHECKED_IN
+  CHECKED_OUT
+}
+
+enum BookingSource {
+  WEB
+  PHONE
+  EMAIL
+  AGENCY
+  WALK_IN
+  OTHER
+}
+
+/**
+ * Specific room type bookings.
+ * Details the room types reserved in a booking.
+ */
+model RoomBooking {
+  id            String   @id @default(uuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id])
+  roomTypeId    String
+  roomType      RoomType @relation(fields: [roomTypeId], references: [id])
+  quantity      Int      @default(1) // Number of rooms of this type
+  pricePerNight Float // Price per night
+  totalPrice    Float // Total price
+  checkInDate   DateTime // Check-in date
+  checkOutDate  DateTime // Check-out date
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([bookingId, roomTypeId])
+  @@index([roomTypeId, checkInDate, checkOutDate])
+}
+
+/**
+ * Special requests for bookings.
+ * E.g., "Baby Cot", "Sea View".
+ */
+model BookingRequest {
+  id        String   @id @default(uuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  type      String // Request type
+  details   String? // Additional details
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId, type])
+  @@index([bookingId, status])
+}
+
+/**
+ * Booking modification log.
+ * Tracks changes to bookings for audit purposes.
+ */
+model BookingLog {
+  id          String    @id @default(uuid())
+  bookingId   String
+  booking     Booking   @relation(fields: [bookingId], references: [id])
+  hotelUserId String
+  hotelUser   HotelUser @relation(fields: [hotelUserId], references: [id])
+  action      String // Action performed (CREATE, MODIFY, CANCEL)
+  details     Json? // Before/after state (e.g., {"before": {"checkOut": "2025-06-05"}})
+  reason      String? // Reason for change
+  createdAt   DateTime  @default(now())
+
+  @@index([bookingId, createdAt])
+  @@index([hotelUserId, action])
+}
+
+/**
+ * Cancellation details.
+ * Manages booking cancellations and refunds.
+ */
+model Cancellation {
+  id           String             @id @default(uuid())
+  bookingId    String             @unique
+  booking      Booking            @relation(fields: [bookingId], references: [id])
+  reason       String? // Cancellation reason
+  status       CancellationStatus @default(PENDING) // Status
+  refundAmount Float? // Refund amount
+  currencyId   String? // Refund currency
+  currency     Currency?          @relation(fields: [currencyId], references: [id])
+  processedBy  String? // Processed by
+  processedAt  DateTime? // Processing date
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([bookingId, status])
+  @@index([status, processedAt])
+}
+
+enum CancellationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  REFUND_INITIATED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+// =============================================================================
+// PAYMENTS
+// =============================================================================
+
+/**
+ * Payment methods for users.
+ * Supports multiple payment options (card, PayPal, etc.).
+ */
+model PaymentMethod {
+  id               String            @id @default(uuid())
+  hotelUserId      String
+  hotelUser        HotelUser         @relation(fields: [hotelUserId], references: [id])
+  type             PaymentMethodType // Type (CARD, PAYPAL, etc.)
+  provider         String? // Provider (e.g., "Stripe")
+  token            String // Payment token
+  lastFour         String? // Last four digits
+  brand            String? // Brand (e.g., "Visa")
+  expiryMonth      Int? // Expiry month
+  expiryYear       Int? // Expiry year
+  isDefault        Boolean           @default(false) // Default method?
+  billingAddressId String? // Billing address
+  billingAddress   Address?          @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  payments         Payment[] // Associated payments
+
+  @@index([hotelUserId, type])
+  @@index([hotelUserId, isDefault])
+}
+
+enum PaymentMethodType {
+  CARD
+  BANK_TRANSFER
+  PAYPAL
+  OTHER
+}
+
+/**
+ * Payments for bookings.
+ * Tracks payment status and details.
+ */
+model Payment {
+  id             String         @id @default(uuid())
+  bookingId      String
+  booking        Booking        @relation(fields: [bookingId], references: [id])
+  methodId       String?
+  method         PaymentMethod? @relation(fields: [methodId], references: [id])
+  amount         Float // Amount
+  currencyId     String // Currency
+  currency       Currency       @relation(fields: [currencyId], references: [id])
+  status         PaymentStatus  @default(PENDING) // Status
+  transactionId  String?        @unique // Transaction ID
+  paymentGateway String? // Gateway (e.g., "Stripe")
+  processedAt    DateTime? // Processing date
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([bookingId, status])
+  @@index([transactionId])
+  @@index([status, processedAt])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  AUTHORIZED
+  CAPTURED
+  CANCELLED
+}
+
+// =============================================================================
+// PROMOTIONS AND EXTRAS
+// =============================================================================
+
+/**
+ * Promotions with room type applicability.
+ * Supports various discount types and conditions.
+ */
+model Promotion {
+  id                 String              @id @default(uuid())
+  hotelId            String
+  hotel              Hotel               @relation(fields: [hotelId], references: [id])
+  code               String              @unique // Unique code
+  name               String // Name
+  description        String? // Description
+  startDate          DateTime // Start date
+  endDate            DateTime // End date
+  type               PromotionType       @default(DISCOUNT_PERCENTAGE) // Type
+  discountPercentage Float? // Percentage discount
+  discountFixed      Float? // Fixed discount
+  currencyId         String? // Currency
+  currency           Currency?           @relation(fields: [currencyId], references: [id])
+  minStay            Int? // Minimum stay
+  maxUses            Int? // Maximum uses
+  usedCount          Int                 @default(0) // Current uses
+  isActive           Boolean             @default(true) // Active?
+  conditions         Json? // Advanced rules (e.g., {"freeNights": {"buy": 5, "free": 1}})
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  bookings           Booking[] // Bookings using this promotion
+  promotionRoomTypes PromotionRoomType[] // Eligible room types
+  pricingRules       DynamicPricing[] // Associated dynamic pricing
+  notifications      Notification[] // Notifications
+
+  @@index([hotelId, isActive, endDate])
+  @@index([code, isActive])
+}
+
+enum PromotionType {
+  DISCOUNT_PERCENTAGE
+  DISCOUNT_FIXED
+  FREE_NIGHTS
+  UPGRADE
+}
+
+model PromotionRoomType {
+  promotionId String
+  roomTypeId  String
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  roomType    RoomType  @relation(fields: [roomTypeId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@id([promotionId, roomTypeId])
+  @@index([promotionId, roomTypeId])
+}
+
+/**
+ * Extras available for bookings.
+ * E.g., "Breakfast", "Late Checkout".
+ */
+model Extra {
+  id            String         @id @default(uuid())
+  hotelId       String
+  hotel         Hotel          @relation(fields: [hotelId], references: [id])
+  name          String // Name
+  description   String? // Description
+  price         Float // Price
+  currencyId    String // Currency
+  currency      Currency       @relation(fields: [currencyId], references: [id])
+  type          ExtraType      @default(PER_STAY) // Type (PER_STAY, PER_NIGHT, etc.)
+  isAvailable   Boolean        @default(true) // Available?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  bookingExtras BookingExtra[] // Booked extras
+
+  @@index([hotelId, isAvailable])
+  @@index([hotelId, type])
+}
+
+enum ExtraType {
+  PER_STAY
+  PER_NIGHT
+  PER_PERSON
+  PER_PERSON_PER_NIGHT
+  PER_UNIT
+}
+
+model BookingExtra {
+  id         String   @id @default(uuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  extraId    String
+  extra      Extra    @relation(fields: [extraId], references: [id])
+  quantity   Int      @default(1) // Quantity
+  price      Float // Unit price
+  currencyId String // Currency
+  currency   Currency @relation(fields: [currencyId], references: [id])
+  totalPrice Float // Total price
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([bookingId, extraId])
+  @@index([bookingId, extraId])
+}
+
+// =============================================================================
+// REVIEWS AND RESPONSES
+// =============================================================================
+
+/**
+ * Guest reviews with rating.
+ * Linked to a completed booking.
+ */
+model Review {
+  id              String           @id @default(uuid())
+  bookingId       String           @unique
+  booking         Booking          @relation(fields: [bookingId], references: [id])
+  hotelUserId     String
+  hotelUser       HotelUser        @relation(fields: [hotelUserId], references: [id])
+  hotelId         String
+  hotel           Hotel            @relation(fields: [hotelId], references: [id])
+  rating          Int // Rating (1-5)
+  comment         String? // Comment
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  isApproved      Boolean          @default(false) // Approved?
+  approvedBy      String? // Approved by
+  approvedAt      DateTime? // Approval date
+  reviewResponses ReviewResponse[] // Responses
+
+  @@index([hotelId, rating])
+  @@index([hotelUserId, createdAt])
+  @@index([hotelId, isApproved, createdAt])
+}
+
+/**
+ * Hotel responses to reviews.
+ * Allows staff to reply to guest feedback.
+ */
+model ReviewResponse {
+  id          String    @id @default(uuid())
+  reviewId    String
+  review      Review    @relation(fields: [reviewId], references: [id])
+  hotelId     String
+  hotel       Hotel     @relation(fields: [hotelId], references: [id])
+  hotelUserId String
+  hotelUser   HotelUser @relation(fields: [hotelUserId], references: [id])
+  comment     String // Response
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([reviewId])
+  @@index([hotelId, createdAt])
+}
+
+// =============================================================================
+// LOYALTY PROGRAM
+// =============================================================================
+
+/**
+ * Loyalty program for guests.
+ * Tracks points and membership level.
+ */
+model LoyaltyProgram {
+  id           String    @id @default(uuid())
+  hotelUserId  String    @unique
+  hotelUser    HotelUser @relation(fields: [hotelUserId], references: [id])
+  points       Int       @default(0) // Total active points
+  level        String    @default("Bronze") // Level (Bronze, Silver, Gold)
+  joinedAt     DateTime  @default(now())
+  lastActivity DateTime  @updatedAt
+  xpPoints     XpPoint[] // Experience points
+
+  @@index([hotelUserId, points])
+  @@index([level, points])
+}
+
+/**
+ * Individual experience points with expiration.
+ * Tracks each point allocation for validity.
+ */
+model XpPoint {
+  id               String         @id @default(uuid())
+  loyaltyProgramId String
+  loyaltyProgram   LoyaltyProgram @relation(fields: [loyaltyProgramId], references: [id])
+  points           Int // Number of points
+  description      String? // Reason (e.g., "Booking #123")
+  bookingId        String? // Associated booking
+  booking          Booking?       @relation(fields: [bookingId], references: [id])
+  earnedAt         DateTime       @default(now()) // Earned date
+  expiresAt        DateTime? // Expiration date
+  isActive         Boolean        @default(true) // Active?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([loyaltyProgramId, isActive, expiresAt])
+  @@index([bookingId])
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+/**
+ * Notifications for users.
+ * Informs users of booking updates, promotions, etc.
+ */
+model Notification {
+  id                 String           @id @default(uuid())
+  hotelUserId        String
+  hotelUser          HotelUser        @relation(fields: [hotelUserId], references: [id])
+  type               NotificationType // Notification type
+  title              String // Title
+  message            String // Message
+  isRead             Boolean          @default(false) // Read?
+  sentAt             DateTime         @default(now()) // Sent date
+  readAt             DateTime? // Read date
+  relatedBookingId   String? // Associated booking
+  relatedBooking     Booking?         @relation(fields: [relatedBookingId], references: [id])
+  relatedPromotionId String? // Associated promotion
+  relatedPromotion   Promotion?       @relation(fields: [relatedPromotionId], references: [id])
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([hotelUserId, isRead, sentAt])
+  @@index([hotelUserId, type, sentAt])
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_PENDING
+  BOOKING_CANCELLED
+  BOOKING_REMINDER
+  BOOKING_MODIFIED
+  PROMOTION
+  REVIEW_REQUEST
+  ACCOUNT_UPDATE
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  IDENTITY_VERIFIED
+  IDENTITY_REJECTED
+  OTHER
+}
+
+// =============================================================================
+// SECURITY AND VERIFICATION
+// =============================================================================
+
+/**
+ * Password reset tokens.
+ * Used for secure password recovery.
+ */
+model PasswordResetToken {
+  id          String    @id @default(uuid())
+  hotelUserId String
+  hotelUser   HotelUser @relation(fields: [hotelUserId], references: [id])
+  token       String    @unique // Unique token
+  expiresAt   DateTime // Expiration date
+  createdAt   DateTime  @default(now())
+
+  @@index([hotelUserId, token])
+  @@index([expiresAt])
+}
+
+/**
+ * Identity verification for users.
+ * Ensures compliance for owners and staff.
+ */
+model IdentityVerification {
+  id          String                     @id @default(uuid())
+  hotelUserId String                     @unique
+  hotelUser   HotelUser                  @relation(fields: [hotelUserId], references: [id])
+  type        IdentityVerificationType // Document type
+  status      IdentityVerificationStatus @default(PENDING) // Status
+  documentUrl String? // Document URL
+  submittedAt DateTime                   @default(now()) // Submission date
+  processedAt DateTime? // Processing date
+  processedBy String? // Processor
+  notes       String? // Notes
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  @@index([hotelUserId, status])
+  @@index([status, processedAt])
+}
+
+enum IdentityVerificationType {
+  ID_CARD
+  PASSPORT
+  DRIVING_LICENSE
+  ADDRESS_PROOF
+  SELFIE
+  OTHER
+}
+
+enum IdentityVerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+// =============================================================================
+// SEARCH OPTIMIZATION
+// =============================================================================
+
+/**
+ * Aggregated search data for hotels.
+ * Optimizes search performance with denormalized data.
+ */
+model HotelSearch {
+  id          String                @id @default(uuid())
+  hotelId     String                @unique
+  hotel       Hotel                 @relation(fields: [hotelId], references: [id])
+  name        String // Hotel name
+  city        String // City
+  country     String // Country
+  stars       Int // Stars
+  reviewScore Float? // Average review score
+  reviewCount Int                   @default(0) // Review count
+  minPrice    Float? // Minimum price
+  latitude    Float? // Coordinates
+  longitude   Float? // Coordinates
+  lastUpdated DateTime              @updatedAt
+  amenities   HotelSearchAmenity[] // Amenities linked to this hotel search
+  facilities  HotelSearchFacility[] // Facilities linked to this hotel search
+
+  @@index([city, country])
+  @@index([stars, reviewScore])
+  @@index([minPrice])
+  @@index([latitude, longitude])
+}
+
+/**
+ * Junction table linking HotelSearch to Amenity.
+ * Represents amenities associated with a hotel for search purposes.
+ */
+model HotelSearchAmenity {
+  hotelSearchId String
+  amenityId     String
+  hotelSearch   HotelSearch @relation(fields: [hotelSearchId], references: [id])
+  amenity       Amenity     @relation(fields: [amenityId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@id([hotelSearchId, amenityId])
+  @@index([hotelSearchId, amenityId])
+}
+
+/**
+ * Junction table linking HotelSearch to Facility.
+ * Represents facilities associated with a hotel for search purposes.
+ */
+model HotelSearchFacility {
+  hotelSearchId String
+  facilityId    String
+  hotelSearch   HotelSearch @relation(fields: [hotelSearchId], references: [id])
+  facility      Facility    @relation(fields: [facilityId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@id([hotelSearchId, facilityId])
+  @@index([hotelSearchId, facilityId])
 }
